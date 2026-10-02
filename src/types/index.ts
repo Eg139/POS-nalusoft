@@ -2,6 +2,24 @@ export type ProductCategory = string;
 
 export type ProductUnit = 'pz' | 'kg' | 'lt' | 'paq' | 'gr';
 
+export interface IceCreamSupplyRequirement {
+  supply_product_id?: string;
+  supply_name: string;
+  quantity: number;
+}
+
+export interface SelectedFlavorItem {
+  flavor_id: string;
+  flavor_name: string;
+  grams: number;
+}
+
+export interface SelectedSupplyItem {
+  supply_id?: string;
+  supply_name: string;
+  quantity: number;
+}
+
 export interface Product {
   id: string;
   barcode: string;
@@ -13,10 +31,19 @@ export interface Product {
   min_stock_alert: number;  // Alerta de stock mínimo
   unit: ProductUnit;
   tax_rate: number;         // e.g. 0.16 para IVA 16% o 0 para exento
-  expiry_date?: string;     // YYYY-MM-DD
-  batch_number?: string;    // Número de lote
+  expiry_date?: string;     // YYYY-MM-DD Fecha de vencimiento
+  manufacturing_date?: string; // YYYY-MM-DD Fecha de fabricación / elaboración
+  batch_number?: string;    // Número de lote / bacha
   created_at: string;
   updated_at: string;
+
+  // Heladería Artesanal: Recetas, Sabores e Insumos
+  is_icecream_presentation?: boolean; // Es un cono, vasito o pote que requiere elegir sabores
+  max_flavors?: number;               // Número máximo de sabores permitidos (ej. 1, 2, 3, 4)
+  total_grams?: number;               // Gramaje total de helado (ej. 80, 160, 250, 500, 1000)
+  default_supplies?: IceCreamSupplyRequirement[]; // Insumos que consume (cucurucho, cucharitas, servilletas, pote)
+  is_raw_flavor?: boolean;            // Es un sabor a granel en bacha (ej. Dulce de Leche, Pistacho)
+  is_supply?: boolean;                // Es un insumo desechable (cucharita, servilleta, cucurucho, pote)
 }
 
 export interface CartItem {
@@ -29,6 +56,8 @@ export interface CartItem {
   total: number;
   profit: number;
   weight_measured?: number; // Para frutas/verduras pesadas
+  selected_flavors?: SelectedFlavorItem[];  // Sabores seleccionados con su gramaje
+  selected_supplies?: SelectedSupplyItem[]; // Utilidades e insumos a descontar
 }
 
 export type PaymentMethod = 'efectivo' | 'tarjeta' | 'transferencia' | 'mixto';
@@ -48,6 +77,8 @@ export interface SaleItem {
   tax: number;
   total: number;
   profit: number;
+  selected_flavors?: SelectedFlavorItem[];
+  selected_supplies?: SelectedSupplyItem[];
 }
 
 export interface Sale {

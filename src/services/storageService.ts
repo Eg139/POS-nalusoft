@@ -64,15 +64,87 @@ export const StorageService = {
   // PRODUCTS
   getProducts(): Product[] {
     const raw = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
+    let products: Product[];
+
     if (!raw) {
-      localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(INITIAL_PRODUCTS));
-      return INITIAL_PRODUCTS;
+      localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(ICE_CREAM_PRODUCTS));
+      return ICE_CREAM_PRODUCTS;
     }
     try {
-      return JSON.parse(raw);
+      products = JSON.parse(raw);
     } catch {
-      return INITIAL_PRODUCTS;
+      products = ICE_CREAM_PRODUCTS;
     }
+
+    // Auto-sync generic ice cream presentations (1kg, 1/2kg, etc.) and raw flavors
+    let changed = false;
+    const existingIds = new Set(products.map((p) => p.id));
+    const existingBarcodes = new Set(products.map((p) => p.barcode));
+
+    // Ensure all generic presentations exist so cashier can always customize
+    for (const iceProd of ICE_CREAM_PRODUCTS) {
+      if (
+        iceProd.is_icecream_presentation &&
+        !existingIds.has(iceProd.id) &&
+        !existingBarcodes.has(iceProd.barcode)
+      ) {
+        products.unshift(iceProd);
+        existingIds.add(iceProd.id);
+        existingBarcodes.add(iceProd.barcode);
+        changed = true;
+      }
+      // Ensure raw flavors are present if catalog lacks bulk flavors
+      if (
+        iceProd.is_raw_flavor &&
+        !existingIds.has(iceProd.id) &&
+        !existingBarcodes.has(iceProd.barcode)
+      ) {
+        products.push(iceProd);
+        existingIds.add(iceProd.id);
+        existingBarcodes.add(iceProd.barcode);
+        changed = true;
+      }
+      // Ensure supplies exist
+      if (
+        iceProd.is_supply &&
+        !existingIds.has(iceProd.id) &&
+        !existingBarcodes.has(iceProd.barcode)
+      ) {
+        products.push(iceProd);
+        existingIds.add(iceProd.id);
+        existingBarcodes.add(iceProd.barcode);
+        changed = true;
+      }
+    }
+
+    // Ensure flavors have manufacturing_date and proper flags
+    for (const p of products) {
+      const isFlavor =
+        p.is_raw_flavor ||
+        p.category.toLowerCase().includes('sabor') ||
+        p.name.toLowerCase().startsWith('sabor');
+
+      if (isFlavor) {
+        if (!p.is_raw_flavor) {
+          p.is_raw_flavor = true;
+          changed = true;
+        }
+        if (!p.manufacturing_date) {
+          p.manufacturing_date = '2026-10-01';
+          changed = true;
+        }
+        if (!p.batch_number) {
+          p.batch_number = `BACHA-${p.id.slice(-4).toUpperCase()}`;
+          changed = true;
+        }
+      }
+    }
+
+    if (changed) {
+      localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
+    }
+
+    return products;
   },
 
   saveProduct(product: Product): Product {
@@ -187,28 +259,114 @@ export const StorageService = {
     sales.unshift(newSale);
     localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(sales));
 
-    // Deduct stock for each sold item
+    // Deduct stock for each sold item and its recipe components (flavors & supplies)
     const products = this.getProducts();
-    for (const item of newSale.items) {
-      const prod = products.find(p => p.id === item.product_id);
-      if (prod) {
-        const previousStock = prod.stock;
-        const newStock = Math.max(0, Number((previousStock - item.quantity).toFixed(3)));
-        prod.stock = newStock;
-        prod.updated_at = new Date().toISOString();
 
-        this.recordStockMovement({
-          product_id: prod.id,
-          product_name: prod.name,
-          barcode: prod.barcode,
-          type: 'venta',
-          quantity: -item.quantity,
-          previous_stock: previousStock,
-          new_stock: newStock,
-          reason: `Venta Ticket ${newSale.folio}`,
-        });
+    for (const item of newSale.items) {
+      // 1. Deduct the sold product itself (if not virtual presentation with stock 999)
+      const prod = products.find((p) => p.id === item.product_id);
+      if (prod) {
+        if (!prod.is_icecream_presentation || prod.stock < 900) {
+          const previousStock = prod.stock;
+          const newStock = Math.max(0, Number((previousStock - item.quantity).toFixed(3)));
+          prod.stock = newStock;
+          prod.updated_at = new Date().toISOString();
+
+          this.recordStockMovement({
+            product_id: prod.id,
+            product_name: prod.name,
+            barcode: prod.barcode,
+            type: 'venta',
+            quantity: -item.quantity,
+            previous_stock: previousStock,
+            new_stock: newStock,
+            reason: `Venta Ticket ${newSale.folio}`,
+          });
+        }
+      }
+
+      // 2. Deduct selected ice cream flavors (by exact grams)
+      if (item.selected_flavors && item.selected_flavors.length > 0) {
+        for (const flavorSelection of item.selected_flavors) {
+          const flavorProd = products.find(
+            (p) =>
+              p.id === flavorSelection.flavor_id ||
+              p.name.toLowerCase().includes(flavorSelection.flavor_name.toLowerCase())
+          );
+
+          if (flavorProd) {
+            const totalGramsSold = flavorSelection.grams * item.quantity;
+            // Convert to kg if flavor is measured in kg
+            const deductUnits =
+              flavorProd.unit === 'kg'
+                ? totalGramsSold / 1000
+                : totalGramsSold;
+
+            const previousStock = flavorProd.stock;
+            const newStock = Math.max(0, Number((previousStock - deductUnits).toFixed(3)));
+            flavorProd.stock = newStock;
+            flavorProd.updated_at = new Date().toISOString();
+
+            this.recordStockMovement({
+              product_id: flavorProd.id,
+              product_name: flavorProd.name,
+              barcode: flavorProd.barcode,
+              type: 'venta',
+              quantity: -deductUnits,
+              previous_stock: previousStock,
+              new_stock: newStock,
+              reason: `Consumo sabor (${totalGramsSold}g) en "${item.product_name}" - Ticket ${newSale.folio}`,
+            });
+          }
+        }
+      }
+
+      // 3. Deduct packaging supplies and utilities (cucuruchos, cucharitas, servilletas, potes)
+      if (item.selected_supplies && item.selected_supplies.length > 0) {
+        for (const supplySelection of item.selected_supplies) {
+          const sName = supplySelection.supply_name.toLowerCase();
+          const supplyProd = products.find((p) => {
+            if (supplySelection.supply_id && p.id === supplySelection.supply_id) return true;
+            const pName = p.name.toLowerCase();
+            if (pName === sName) return true;
+            if (pName.includes(sName) || sName.includes(pName)) return true;
+            // Keyword fuzzy match for common ice cream supplies
+            if (sName.includes('cucharita') && pName.includes('cucharita')) return true;
+            if (sName.includes('servilleta') && pName.includes('servilleta')) return true;
+            if (sName.includes('cucurucho') && pName.includes('cucurucho')) return true;
+            if (sName.includes('waffle') && pName.includes('waffle')) return true;
+            if (sName.includes('250') && pName.includes('250')) return true;
+            if (sName.includes('500') && pName.includes('500')) return true;
+            if (
+              (sName.includes('1 kg') || sName.includes('1kg')) &&
+              (pName.includes('1 kg') || pName.includes('1kg'))
+            )
+              return true;
+            return false;
+          });
+
+          if (supplyProd) {
+            const totalQuantityDeducted = supplySelection.quantity * item.quantity;
+            const previousStock = supplyProd.stock;
+            const newStock = Math.max(0, Number((previousStock - totalQuantityDeducted).toFixed(3)));
+            supplyProd.stock = newStock;
+            supplyProd.updated_at = new Date().toISOString();
+
+            this.recordStockMovement({
+              product_id: supplyProd.id,
+              product_name: supplyProd.name,
+              barcode: supplyProd.barcode,
+              type: 'venta',
+              quantity: -totalQuantityDeducted,
+              previous_stock: previousStock,
+              new_stock: newStock,
+              reason: `Insumo consumido (${totalQuantityDeducted} ${supplyProd.unit}) en "${item.product_name}" - Ticket ${newSale.folio}`,
+            });
+          }
+        }
       }
     }
+
     localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
 
     // Update Cash Session if active

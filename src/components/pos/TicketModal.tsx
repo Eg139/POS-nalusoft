@@ -116,6 +116,11 @@ ${settings.ticket_footer}
                     <div className="pr-2 max-w-[190px]">
                       <span className="font-semibold text-slate-900">{item.quantity} {item.unit}</span>{' '}
                       <span className="text-slate-700">{item.product_name}</span>
+                      {item.selected_flavors && item.selected_flavors.length > 0 && (
+                        <div className="text-[9px] text-pink-700 italic pl-1 border-l border-pink-300 my-0.5">
+                          Sabores: {item.selected_flavors.map((f) => `${f.flavor_name} (${f.grams}g)`).join(', ')}
+                        </div>
+                      )}
                       {item.discount_percent > 0 && (
                         <span className="block text-[9px] text-emerald-600">Desc. {item.discount_percent}%</span>
                       )}
