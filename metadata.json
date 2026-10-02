@@ -1,0 +1,6 @@
+{
+  "name": "SuperPOS - Punto de Venta e Inventario",
+  "description": "Sistema integral de punto de venta y gestión de inventario para supermercados con alertas de stock, reportes de rendimientos y arquitectura compatible con Supabase.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
