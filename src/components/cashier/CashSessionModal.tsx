@@ -33,12 +33,15 @@ export const CashSessionModal: React.FC<CashSessionModalProps> = ({
   const parsedActual = parseFloat(actualCash) || 0;
   const difference = Number((parsedActual - session.expected_cash).toFixed(2));
 
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
   // Handle cash withdrawal (retiro de efectivo / pago a proveedor)
   const handleWithdrawal = (e: React.FormEvent) => {
     e.preventDefault();
     const amount = parseFloat(withdrawalAmount) || 0;
     if (amount <= 0 || amount > session.expected_cash) {
-      alert('Monto de retiro inválido o excede el efectivo en caja.');
+      setErrorMessage('Monto de retiro inválido o excede el efectivo en caja.');
+      setTimeout(() => setErrorMessage(null), 3000);
       return;
     }
 
@@ -55,15 +58,9 @@ export const CashSessionModal: React.FC<CashSessionModalProps> = ({
 
   // Close session (Corte Z)
   const handleCloseSession = () => {
-    if (
-      window.confirm(
-        `¿Deseas cerrar el turno de caja con un efectivo reportado de $${parsedActual.toFixed(2)}?`
-      )
-    ) {
-      StorageService.closeCashSession(parsedActual);
-      onRefreshData();
-      setIsOpeningNew(true);
-    }
+    StorageService.closeCashSession(parsedActual);
+    onRefreshData();
+    setIsOpeningNew(true);
   };
 
   // Open new shift

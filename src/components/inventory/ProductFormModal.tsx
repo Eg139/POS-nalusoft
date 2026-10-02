@@ -4,12 +4,14 @@ import { X, Check, Sparkles, AlertCircle } from 'lucide-react';
 
 interface ProductFormModalProps {
   product?: Product | null;
+  categories?: string[];
   onSave: (product: Product) => void;
   onClose: () => void;
 }
 
 export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   product,
+  categories = [],
   onSave,
   onClose,
 }) => {
@@ -17,7 +19,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
   const [barcode, setBarcode] = useState(product?.barcode || '');
   const [name, setName] = useState(product?.name || '');
-  const [category, setCategory] = useState<ProductCategory>(product?.category || 'Abarrotes');
+  const [category, setCategory] = useState<string>(product?.category || (categories.length > 0 ? categories[0] : 'Helados'));
   const [costPrice, setCostPrice] = useState<string>(product ? product.cost_price.toString() : '');
   const [salePrice, setSalePrice] = useState<string>(product ? product.sale_price.toString() : '');
   const [stock, setStock] = useState<string>(product ? product.stock.toString() : '10');
@@ -77,7 +79,12 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
     onSave(newProd);
   };
 
-  const categories: ProductCategory[] = [
+  const defaultCategories: string[] = [
+    'Helados por Kilo',
+    'Conos y Vasitos',
+    'Paletas Artesanales',
+    'Malteadas y Bebidas',
+    'Toppings y Adicionales',
     'Abarrotes',
     'Lácteos y Huevos',
     'Frutas y Verduras',
@@ -88,6 +95,8 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
     'Limpieza y Hogar',
     'Cuidado Personal',
   ];
+
+  const allSuggestedCategories = Array.from(new Set([...categories, ...defaultCategories]));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto">
@@ -156,19 +165,22 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Departamento / Categoría
+                Departamento / Categoría (Seleccionar o escribir nueva)
               </label>
-              <select
+              <input
+                type="text"
+                list="category-suggestions"
+                required
                 value={category}
-                onChange={(e) => setCategory(e.target.value as ProductCategory)}
+                onChange={(e) => setCategory(e.target.value)}
+                placeholder="Ej. Helados por Kilo, Conos, Paletas..."
                 className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
-              >
-                {categories.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
+              />
+              <datalist id="category-suggestions">
+                {allSuggestedCategories.map((c) => (
+                  <option key={c} value={c} />
                 ))}
-              </select>
+              </datalist>
             </div>
 
             <div>

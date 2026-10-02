@@ -7,6 +7,8 @@ interface NavbarProps {
   currentView: AppView;
   onSelectView: (view: AppView) => void;
   alertCount: number;
+  isIceCreamMode?: boolean;
+  onToggleStoreMode?: () => void;
   onOpenCashSession: () => void;
   onOpenSupabaseModal: () => void;
 }
@@ -15,6 +17,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   currentView,
   onSelectView,
   alertCount,
+  isIceCreamMode = false,
+  onToggleStoreMode,
   onOpenCashSession,
   onOpenSupabaseModal,
 }) => {
@@ -93,6 +97,20 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Zone 3: 1-2 primary actions */}
       <div className="flex items-center gap-2">
+        {onToggleStoreMode && (
+          <button
+            onClick={onToggleStoreMode}
+            title={isIceCreamMode ? 'Cambiar a modo Supermercado' : 'Cambiar a modo Heladería'}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap border ${
+              isIceCreamMode
+                ? 'bg-pink-950/40 text-pink-300 border-pink-700/60 hover:bg-pink-900/60'
+                : 'bg-emerald-950/40 text-emerald-300 border-emerald-700/60 hover:bg-emerald-900/60'
+            }`}
+          >
+            <span>{isIceCreamMode ? '🍨 Heladería' : '🛒 Supermercado'}</span>
+          </button>
+        )}
+
         <button
           onClick={onOpenCashSession}
           title="Arqueo y Corte de Caja"

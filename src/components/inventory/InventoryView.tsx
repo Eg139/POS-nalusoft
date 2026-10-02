@@ -36,24 +36,20 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [adjustingProduct, setAdjustingProduct] = useState<Product | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Sorting
   const [sortField, setSortField] = useState<'name' | 'stock' | 'sale_price' | 'margin'>('name');
   const [sortAsc, setSortAsc] = useState(true);
 
-  // Categories list
-  const categories: string[] = [
-    'Todas',
-    'Abarrotes',
-    'Lácteos y Huevos',
-    'Frutas y Verduras',
-    'Carnicería y Embutidos',
-    'Panadería y Tortillería',
-    'Bebidas y Licores',
-    'Snacks y Dulces',
-    'Limpieza y Hogar',
-    'Cuidado Personal',
-  ];
+  // Categories list dynamically derived from catalog
+  const categories: string[] = useMemo(() => {
+    const set = new Set<string>();
+    products.forEach((p) => {
+      if (p.category) set.add(p.category);
+    });
+    return ['Todas', ...Array.from(set)];
+  }, [products]);
 
   // Overview metrics
   const metrics = useMemo(() => {
@@ -164,11 +160,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     onRefreshData();
   };
 
-  const handleDeleteProduct = (id: string, name: string) => {
-    if (window.confirm(`¿Estás seguro de eliminar "${name}" del catálogo de inventario?`)) {
-      StorageService.deleteProduct(id);
-      onRefreshData();
-    }
+  const handleDeleteProduct = (id: string) => {
+    StorageService.deleteProduct(id);
+    setDeletingId(null);
+    onRefreshData();
   };
 
   const handleStockAdjustment = (
@@ -543,13 +538,30 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                           >
                             <Edit2 className="w-4 h-4" />
                           </button>
-                          <button
-                            onClick={() => handleDeleteProduct(p.id, p.name)}
-                            title="Eliminar de catálogo"
-                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-slate-100 rounded transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {deletingId === p.id ? (
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => handleDeleteProduct(p.id)}
+                                className="px-2 py-0.5 text-[10px] font-bold text-white bg-rose-600 hover:bg-rose-700 rounded transition-colors"
+                              >
+                                ¿Borrar?
+                              </button>
+                              <button
+                                onClick={() => setDeletingId(null)}
+                                className="text-slate-400 hover:text-slate-600 text-xs px-1"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setDeletingId(p.id)}
+                              title="Eliminar de catálogo"
+                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-slate-100 rounded transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -565,6 +577,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       {isFormOpen && (
         <ProductFormModal
           product={editingProduct}
+          categories={categories.filter((c) => c !== 'Todas')}
           onSave={handleSaveProduct}
           onClose={() => {
             setIsFormOpen(false);

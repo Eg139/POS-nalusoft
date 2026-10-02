@@ -37,6 +37,12 @@ export const SupabaseMigrationModal: React.FC<SupabaseMigrationModalProps> = ({
   // Store settings form state
   const [formData, setFormData] = useState<SupermarketSettings>(settings);
   const [savedSettingsToast, setSavedSettingsToast] = useState(false);
+  const [actionFeedback, setActionFeedback] = useState<string | null>(null);
+
+  const showFeedback = (msg: string) => {
+    setActionFeedback(msg);
+    setTimeout(() => setActionFeedback(null), 3500);
+  };
 
   // Generate SQL script
   const generatedSQL = StorageService.generateSupabaseMigrationSQL();
@@ -76,25 +82,35 @@ export const SupabaseMigrationModal: React.FC<SupabaseMigrationModalProps> = ({
       const content = event.target?.result as string;
       const success = StorageService.importDatabaseJSON(content);
       if (success) {
-        alert('¡Respaldo importado correctamente!');
+        showFeedback('¡Respaldo importado correctamente!');
         onRefreshData();
       } else {
-        alert('Error al leer el archivo JSON de respaldo.');
+        showFeedback('Error al leer el archivo JSON de respaldo.');
       }
     };
     reader.readAsText(file);
   };
 
+  const handleLoadIceCreamDemo = () => {
+    StorageService.loadIceCreamDemo();
+    onRefreshData();
+    showFeedback('🍨 ¡Catálogo de Heladería y Gelatería cargado exitosamente!');
+  };
+
+  const handleLoadSupermarketDemo = () => {
+    StorageService.loadSupermarketDemo();
+    onRefreshData();
+    showFeedback('🛒 ¡Catálogo de Supermercado restablecido!');
+  };
+
+  const handleClearAllData = () => {
+    StorageService.clearAllData('Mi Heladería Artesanal');
+    onRefreshData();
+    showFeedback('✨ Catálogo limpiado. Ahora puedes ingresar tus propios productos.');
+  };
+
   const handleResetDemo = () => {
-    if (
-      window.confirm(
-        '¿Deseas restablecer todos los datos a la demostración inicial de supermercado? Se perderán las ventas personalizadas.'
-      )
-    ) {
-      StorageService.resetToDemoData();
-      onRefreshData();
-      alert('Datos restablecidos al estado inicial del supermercado.');
-    }
+    handleLoadSupermarketDemo();
   };
 
   const handleSaveStoreSettings = (e: React.FormEvent) => {
@@ -179,6 +195,13 @@ export const SupabaseMigrationModal: React.FC<SupabaseMigrationModalProps> = ({
 
         {/* Content */}
         <div className="p-6 overflow-y-auto flex-1 space-y-5">
+          {actionFeedback && (
+            <div className="p-3 bg-emerald-50 border border-emerald-300 rounded-xl text-emerald-900 text-xs font-semibold flex items-center gap-2 animate-in fade-in">
+              <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>{actionFeedback}</span>
+            </div>
+          )}
+
           {/* TAB 1: SUPABASE MIGRATION */}
           {activeTab === 'supabase' && (
             <div className="space-y-4">
@@ -351,21 +374,70 @@ export const SupabaseMigrationModal: React.FC<SupabaseMigrationModalProps> = ({
                 </div>
               </div>
 
-              {/* Danger Zone: Reset */}
-              <div className="pt-4 border-t border-slate-200 p-4 bg-rose-50/50 border border-rose-200 rounded-xl flex items-center justify-between">
-                <div>
-                  <h5 className="font-bold text-xs text-rose-900">Restablecer Demostración de Supermercado</h5>
-                  <p className="text-[11px] text-rose-700 mt-0.5">
-                    Reinicia el catálogo con los 27 productos demo, ventas de ejemplo y alertas activas.
-                  </p>
+              {/* Presets and Catalogs */}
+              <div className="pt-4 border-t border-slate-200 space-y-3">
+                <h4 className="font-bold text-xs uppercase tracking-wider text-slate-700">
+                  Cambiar Giro de Negocio / Catálogo de Ejemplo
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Preset Heladería */}
+                  <div className="p-3.5 bg-pink-50/70 border border-pink-200 rounded-xl flex flex-col justify-between space-y-2">
+                    <div>
+                      <div className="flex items-center gap-1.5 font-bold text-xs text-pink-900">
+                        <span>🍨</span>
+                        <span>Catálogo Heladería & Gelatería</span>
+                      </div>
+                      <p className="text-[11px] text-pink-700 mt-1 leading-snug">
+                        21 productos de helados artesanales: helados por kilo/báscula, conos, paletas rellenas, milkshakes y toppings.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleLoadIceCreamDemo}
+                      className="w-full py-1.5 px-3 text-xs font-bold text-white bg-pink-600 hover:bg-pink-700 rounded-lg transition-colors shadow-xs"
+                    >
+                      Cargar Modo Heladería
+                    </button>
+                  </div>
+
+                  {/* Preset Supermercado */}
+                  <div className="p-3.5 bg-blue-50/70 border border-blue-200 rounded-xl flex flex-col justify-between space-y-2">
+                    <div>
+                      <div className="flex items-center gap-1.5 font-bold text-xs text-blue-900">
+                        <span>🛒</span>
+                        <span>Catálogo Supermercado</span>
+                      </div>
+                      <p className="text-[11px] text-blue-700 mt-1 leading-snug">
+                        27 productos de abarrotes, frutas y verduras por kg, lácteos, bebidas, panadería y limpieza.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleLoadSupermarketDemo}
+                      className="w-full py-1.5 px-3 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-xs"
+                    >
+                      Cargar Modo Supermercado
+                    </button>
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleResetDemo}
-                  className="px-3 py-1.5 text-xs font-bold text-rose-700 hover:text-white hover:bg-rose-600 border border-rose-300 rounded-lg transition-colors"
-                >
-                  Restablecer
-                </button>
+
+                {/* Clear all products to start from scratch */}
+                <div className="p-3 bg-slate-100 border border-slate-200 rounded-xl flex items-center justify-between text-xs">
+                  <div>
+                    <span className="font-bold text-slate-800">Empezar Catálogo Vacío (Desde Cero)</span>
+                    <p className="text-[11px] text-slate-500">
+                      Limpia los productos de ejemplo para que puedas dar de alta tus propios sabores y artículos.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleClearAllData}
+                    className="px-3 py-1.5 font-semibold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-200 border border-slate-300 rounded-lg transition-colors shrink-0"
+                  >
+                    Limpiar Catálogo
+                  </button>
+                </div>
               </div>
             </div>
           )}

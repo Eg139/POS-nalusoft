@@ -66,17 +66,15 @@ export const AlertsView: React.FC<AlertsViewProps> = ({
   // Quick mark as waste for expired
   const handleMarkWaste = (product: Product) => {
     if (product.stock <= 0) return;
-    if (window.confirm(`¿Dar de baja ${product.stock} ${product.unit} de "${product.name}" por caducidad/merma?`)) {
-      StorageService.adjustStock(
-        product.id,
-        -product.stock,
-        'merma',
-        `Baja total por vencimiento de fecha (${product.expiry_date})`
-      );
-      setSuccessToast(`Merma registrada para ${product.name}`);
-      setTimeout(() => setSuccessToast(null), 3000);
-      onRefreshData();
-    }
+    StorageService.adjustStock(
+      product.id,
+      -product.stock,
+      'merma',
+      `Baja total por vencimiento de fecha (${product.expiry_date})`
+    );
+    setSuccessToast(`Merma de ${product.stock} ${product.unit} registrada para ${product.name}`);
+    setTimeout(() => setSuccessToast(null), 3000);
+    onRefreshData();
   };
 
   return (

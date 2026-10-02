@@ -49,19 +49,14 @@ export const POSView: React.FC<POSViewProps> = ({
 
   const barcodeInputRef = useRef<HTMLInputElement>(null);
 
-  // Categories list
-  const categories: string[] = [
-    'Todos',
-    'Abarrotes',
-    'Lácteos y Huevos',
-    'Frutas y Verduras',
-    'Carnicería y Embutidos',
-    'Panadería y Tortillería',
-    'Bebidas y Licores',
-    'Snacks y Dulces',
-    'Limpieza y Hogar',
-    'Cuidado Personal',
-  ];
+  // Categories list dynamically derived from products
+  const categories: string[] = useMemo(() => {
+    const set = new Set<string>();
+    products.forEach((p) => {
+      if (p.category) set.add(p.category);
+    });
+    return ['Todos', ...Array.from(set)];
+  }, [products]);
 
   // Autofocus scanner input on mount & after actions
   useEffect(() => {
@@ -260,23 +255,20 @@ export const POSView: React.FC<POSViewProps> = ({
     });
   };
 
-  // Apply discount to line item
+  // Apply discount to line item (cycles 10% -> 20% -> 0% cleanly without window.prompt)
   const applyLineDiscount = (productId: string) => {
-    const promptVal = window.prompt('Ingresa el % de descuento para este producto (0 a 100):', '10');
-    if (promptVal === null) return;
-    const discount = Math.min(100, Math.max(0, parseFloat(promptVal) || 0));
-
     setCart((prevCart) => {
       return prevCart.map((item) => {
         if (item.product.id !== productId) return item;
-        const discountedPrice = item.unit_price * (1 - discount / 100);
+        const nextDiscount = item.discount_percent === 0 ? 10 : item.discount_percent === 10 ? 20 : 0;
+        const discountedPrice = item.unit_price * (1 - nextDiscount / 100);
         const subtotal = Number((item.quantity * discountedPrice).toFixed(2));
         const tax = Number((subtotal * item.product.tax_rate).toFixed(2));
         const total = Number((subtotal + tax).toFixed(2));
         const costTotal = Number((item.quantity * item.product.cost_price).toFixed(2));
         const profit = Number((subtotal - costTotal).toFixed(2));
 
-        return { ...item, discount_percent: discount, subtotal, tax, total, profit };
+        return { ...item, discount_percent: nextDiscount, subtotal, tax, total, profit };
       });
     });
   };

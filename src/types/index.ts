@@ -1,13 +1,4 @@
-export type ProductCategory =
-  | 'Abarrotes'
-  | 'Lácteos y Huevos'
-  | 'Frutas y Verduras'
-  | 'Carnicería y Embutidos'
-  | 'Panadería y Tortillería'
-  | 'Bebidas y Licores'
-  | 'Snacks y Dulces'
-  | 'Limpieza y Hogar'
-  | 'Cuidado Personal';
+export type ProductCategory = string;
 
 export type ProductUnit = 'pz' | 'kg' | 'lt' | 'paq' | 'gr';
 

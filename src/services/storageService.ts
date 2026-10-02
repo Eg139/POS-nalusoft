@@ -1,5 +1,6 @@
 import { Product, Sale, StockMovement, CashSession, SupermarketSettings, StockMovementType } from '../types';
 import { INITIAL_PRODUCTS, INITIAL_SALES, INITIAL_MOVEMENTS, INITIAL_CASH_SESSION, INITIAL_SETTINGS } from '../data/seedData';
+import { ICE_CREAM_PRODUCTS, ICE_CREAM_SALES, ICE_CREAM_SETTINGS, ICE_CREAM_CASH_SESSION } from '../data/iceCreamData';
 
 const STORAGE_KEYS = {
   PRODUCTS: 'superpos_products_v1',
@@ -321,11 +322,54 @@ export const StorageService = {
 
   // RESET / BACKUP / RESTORE
   resetToDemoData(): void {
+    this.loadSupermarketDemo();
+  },
+
+  loadSupermarketDemo(): void {
     localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(INITIAL_PRODUCTS));
     localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(INITIAL_SALES));
     localStorage.setItem(STORAGE_KEYS.MOVEMENTS, JSON.stringify(INITIAL_MOVEMENTS));
     localStorage.setItem(STORAGE_KEYS.CASH_SESSION, JSON.stringify(INITIAL_CASH_SESSION));
     localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(INITIAL_SETTINGS));
+  },
+
+  loadIceCreamDemo(): void {
+    localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(ICE_CREAM_PRODUCTS));
+    localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(ICE_CREAM_SALES));
+    localStorage.setItem(STORAGE_KEYS.MOVEMENTS, JSON.stringify([]));
+    localStorage.setItem(STORAGE_KEYS.CASH_SESSION, JSON.stringify(ICE_CREAM_CASH_SESSION));
+    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(ICE_CREAM_SETTINGS));
+  },
+
+  clearAllData(storeName = 'Mi Heladería Artesanal'): void {
+    const blankSettings: SupermarketSettings = {
+      store_name: storeName,
+      tax_id: 'RFC-HEL-001',
+      address: 'Sucursal Principal',
+      phone: '',
+      ticket_footer: '¡Gracias por su compra!',
+      default_tax_rate: 0.16,
+      currency: '$',
+      beep_enabled: true,
+      cashier_active: 'Cajero 01',
+    };
+    const blankSession: CashSession = {
+      id: `ses-${Date.now()}`,
+      cashier_name: 'Cajero 01',
+      opened_at: new Date().toISOString(),
+      initial_cash: 500,
+      cash_sales: 0,
+      card_sales: 0,
+      transfer_sales: 0,
+      cash_withdrawals: 0,
+      expected_cash: 500,
+      status: 'abierta',
+    };
+    localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify([]));
+    localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify([]));
+    localStorage.setItem(STORAGE_KEYS.MOVEMENTS, JSON.stringify([]));
+    localStorage.setItem(STORAGE_KEYS.CASH_SESSION, JSON.stringify(blankSession));
+    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(blankSettings));
   },
 
   exportDatabaseJSON(): string {

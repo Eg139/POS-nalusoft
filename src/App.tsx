@@ -8,6 +8,8 @@ import { AlertsView } from './components/alerts/AlertsView';
 import { ReportsView } from './components/reports/ReportsView';
 import { CashSessionModal } from './components/cashier/CashSessionModal';
 import { SupabaseMigrationModal } from './components/settings/SupabaseMigrationModal';
+import { StoreModeModal } from './components/layout/StoreModeModal';
+import { CheckCircle2 } from 'lucide-react';
 
 export default function App() {
   const [currentView, setCurrentView] = useState<AppView>('pos');
@@ -17,9 +19,19 @@ export default function App() {
   const [cashSession, setCashSession] = useState<CashSession | null>(null);
   const [settings, setSettings] = useState<SupermarketSettings | null>(null);
 
-  // Global modals
+  // Global modals & notifications
   const [isCashSessionOpen, setIsCashSessionOpen] = useState(false);
   const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState(false);
+  const [isStoreModeModalOpen, setIsStoreModeModalOpen] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Show in-app notification toast
+  const showToast = useCallback((msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 3500);
+  }, []);
 
   // Load data from LocalStorage
   const loadData = useCallback(() => {
@@ -57,6 +69,36 @@ export default function App() {
     return count;
   }, [products]);
 
+  // Detect if store is currently running Heladería or Supermercado
+  const isIceCreamMode = useMemo(() => {
+    if (!settings) return false;
+    return (
+      settings.store_name.toLowerCase().includes('gelato') ||
+      settings.store_name.toLowerCase().includes('helad') ||
+      products.some((p) => p.category.toLowerCase().includes('helad'))
+    );
+  }, [settings, products]);
+
+  // Handle store mode selection from modal
+  const handleSelectStoreMode = (mode: 'supermarket' | 'icecream' | 'empty') => {
+    if (mode === 'icecream') {
+      StorageService.loadIceCreamDemo();
+      loadData();
+      setIsStoreModeModalOpen(false);
+      showToast('🍨 Modo Heladería Artesanal activado (21 productos cargados)');
+    } else if (mode === 'supermarket') {
+      StorageService.loadSupermarketDemo();
+      loadData();
+      setIsStoreModeModalOpen(false);
+      showToast('🛒 Modo Supermercado activado (27 productos cargados)');
+    } else {
+      StorageService.clearAllData('Mi Heladería');
+      loadData();
+      setIsStoreModeModalOpen(false);
+      showToast('✨ Catálogo limpiado. Ahora puedes registrar tus propios productos.');
+    }
+  };
+
   if (!settings || !cashSession) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center text-white">
@@ -69,12 +111,22 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-100 font-sans antialiased text-slate-900">
+    <div className="min-h-screen flex flex-col bg-slate-100 font-sans antialiased text-slate-900 relative">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 bg-slate-900 text-white rounded-xl shadow-2xl border border-slate-700 flex items-center gap-2 text-xs font-semibold animate-in fade-in slide-in-from-top-4 duration-200">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
       {/* Top Navbar */}
       <Navbar
         currentView={currentView}
         onSelectView={setCurrentView}
         alertCount={alertCount}
+        isIceCreamMode={isIceCreamMode}
+        onToggleStoreMode={() => setIsStoreModeModalOpen(true)}
         onOpenCashSession={() => setIsCashSessionOpen(true)}
         onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
       />
@@ -111,6 +163,15 @@ export default function App() {
           <ReportsView sales={sales} products={products} />
         )}
       </main>
+
+      {/* Global Store Mode Switcher Modal */}
+      {isStoreModeModalOpen && (
+        <StoreModeModal
+          currentMode={isIceCreamMode ? 'icecream' : 'supermarket'}
+          onSelectMode={handleSelectStoreMode}
+          onClose={() => setIsStoreModeModalOpen(false)}
+        />
+      )}
 
       {/* Global Arqueo de Caja Modal */}
       {isCashSessionOpen && (
