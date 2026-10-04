@@ -1,7 +1,8 @@
 import React from 'react';
-import { ShoppingCart, Package, AlertTriangle, BarChart3, Vault, Database } from 'lucide-react';
+import { ShoppingCart, Package, AlertTriangle, BarChart3, Vault, Database, ChefHat } from 'lucide-react';
 
-export type AppView = 'pos' | 'inventory' | 'alerts' | 'reports';
+// 1. Añadimos 'recipes' a las vistas posibles de la aplicación
+export type AppView = 'pos' | 'inventory' | 'alerts' | 'reports' | 'production';
 
 interface NavbarProps {
   currentView: AppView;
@@ -24,7 +25,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   return (
     <header className="h-[65px] bg-slate-900 border-b border-slate-800 px-4 md:px-6 flex items-center justify-between select-none shrink-0 z-40">
-      {/* Zone 1: Single text element wordmark */}
+      {/* Zone 1: Wordmark */}
       <a
         href="#"
         onClick={(e) => {
@@ -39,7 +40,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         <span className="text-white">SuperPOS</span>
       </a>
 
-      {/* Zone 2: 4-6 clean text navigation links */}
+      {/* Zone 2: Navigation Links */}
       <nav className="flex items-center gap-1 sm:gap-2">
         <button
           onClick={() => onSelectView('pos')}
@@ -63,6 +64,19 @@ export const Navbar: React.FC<NavbarProps> = ({
         >
           <Package className="w-4 h-4" />
           <span>Inventario</span>
+        </button>
+
+        {/* --- NUEVO BOTÓN DE RECETAS / ESCANDALLO --- */}
+        <button
+          onClick={() => onSelectView('production')}
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
+            currentView === 'production'
+              ? 'bg-slate-800 text-emerald-400'
+              : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+          }`}
+        >
+          <ChefHat className="w-4 h-4 text-emerald-400" />
+          <span>Producción</span>
         </button>
 
         <button
@@ -95,7 +109,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         </button>
       </nav>
 
-      {/* Zone 3: 1-2 primary actions */}
+      {/* Zone 3: Primary actions */}
       <div className="flex items-center gap-2">
         {onToggleStoreMode && (
           <button

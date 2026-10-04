@@ -6,6 +6,7 @@ import { POSView } from './components/pos/POSView';
 import { InventoryView } from './components/inventory/InventoryView';
 import { AlertsView } from './components/alerts/AlertsView';
 import { ReportsView } from './components/reports/ReportsView';
+import { RecipesView } from './components/production/RecipesView'; // <-- 1. Importar la vista de producción
 import { CashSessionModal } from './components/cashier/CashSessionModal';
 import { SupabaseMigrationModal } from './components/settings/SupabaseMigrationModal';
 import { StoreModeModal } from './components/layout/StoreModeModal';
@@ -79,7 +80,7 @@ export default function App() {
     );
   }, [settings, products]);
 
-  // Handle store mode selection from modal
+// Handle store mode selection from modal
   const handleSelectStoreMode = (mode: 'supermarket' | 'icecream' | 'empty') => {
     if (mode === 'icecream') {
       StorageService.loadIceCreamDemo();
@@ -92,10 +93,24 @@ export default function App() {
       setIsStoreModeModalOpen(false);
       showToast('🛒 Modo Supermercado activado (27 productos cargados)');
     } else {
-      StorageService.clearAllData('Mi Heladería');
+      // Si eligió 'empty', puedes limpiar guardando un catálogo vacío o un setting inicial
+      StorageService.saveProduct({
+        id: `prod-${Date.now()}`,
+        barcode: '',
+        name: 'Nuevo Producto',
+        category: 'General',
+        cost_price: 0,
+        sale_price: 0,
+        stock: 0,
+        min_stock_alert: 5,
+        unit: 'pz',
+        tax_rate: 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
       loadData();
       setIsStoreModeModalOpen(false);
-      showToast('✨ Catálogo limpiado. Ahora puedes registrar tus propios productos.');
+      showToast('✨ Catálogo limpiado.');
     }
   };
 
@@ -147,6 +162,19 @@ export default function App() {
             products={products}
             onRefreshData={loadData}
             onNavigateToPOS={() => setCurrentView('pos')}
+          />
+        )}
+
+        {/* 2. Renderizado condicional de la vista de Producción */}
+        {currentView === 'production' && (
+          <RecipesView
+            products={products}
+            onRefreshData={loadData} // <-- Añadido aquí para cumplir con el tipado
+            onUpdateProductRecipe={(productId, recipe, hasRecipe) => {
+              StorageService.updateProductRecipe(productId, recipe, hasRecipe);
+              loadData();
+              showToast('¡Receta guardada y costos recalculados exitosamente!');
+            }}
           />
         )}
 

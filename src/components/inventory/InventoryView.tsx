@@ -1,9 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { Product, ProductCategory, StockMovementType } from '../../types';
+import { Product, StockMovementType } from '../../types';
 import { StorageService } from '../../services/storageService';
 import { ProductFormModal } from './ProductFormModal';
 import { StockAdjustModal } from './StockAdjustModal';
-import { IceCreamFlavorsSection } from './IceCreamFlavorsSection';
 import {
   Search,
   Plus,
@@ -27,23 +26,10 @@ interface InventoryViewProps {
 export const InventoryView: React.FC<InventoryViewProps> = ({
   products,
   onRefreshData,
-  onNavigateToPOS,
 }) => {
-  const [inventoryTab, setInventoryTab] = useState<'flavors' | 'catalog'>('flavors');
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('Todas');
-  const [statusFilter, setStatusFilter] = useState<
-    'all' | 'low' | 'out' | 'expiring' | 'flavors' | 'presentations' | 'supplies'
-  >('all');
-
-  const rawFlavorsCount = useMemo(() => {
-    return products.filter(
-      (p) =>
-        p.is_raw_flavor ||
-        p.category.toLowerCase().includes('sabor') ||
-        p.name.toLowerCase().startsWith('sabor')
-    ).length;
-  }, [products]);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'low' | 'out' | 'expiring'>('all');
 
   // Modals state
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -132,27 +118,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         } else if (statusFilter === 'expiring') {
           if (!p.expiry_date) return false;
           matchStatus = new Date(p.expiry_date) <= fifteenDaysFromNow;
-        } else if (statusFilter === 'flavors') {
-          matchStatus = Boolean(
-            p.is_raw_flavor ||
-            p.category.toLowerCase().includes('sabor') ||
-            p.name.toLowerCase().startsWith('sabor')
-          );
-        } else if (statusFilter === 'presentations') {
-          matchStatus = Boolean(
-            p.is_icecream_presentation ||
-            p.category.toLowerCase().includes('presentación') ||
-            p.category.toLowerCase().includes('cono') ||
-            p.category.toLowerCase().includes('vasito') ||
-            p.name.toLowerCase().includes('cono') ||
-            p.name.toLowerCase().includes('pote')
-          );
-        } else if (statusFilter === 'supplies') {
-          matchStatus = Boolean(
-            p.is_supply ||
-            p.category.toLowerCase().includes('insumo') ||
-            p.category.toLowerCase().includes('utilidad')
-          );
         }
 
         return matchCategory && matchQuery && matchStatus;
@@ -211,7 +176,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     onRefreshData();
   };
 
-  // Export CSV
   const handleExportCSV = () => {
     const headers = [
       'ID',
@@ -247,7 +211,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `inventario-superpos-${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute('download', `inventario-materias-primas-${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -259,11 +223,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
           <div>
-            <span className="text-xs font-medium text-slate-500">Total Catálogo</span>
+            <span className="text-xs font-medium text-slate-500">Total Insumos / Stock</span>
             <p className="text-2xl font-bold font-mono text-slate-900 tabular-nums">
               {metrics.totalCount}
             </p>
-            <span className="text-[11px] text-slate-400">productos activos</span>
+            <span className="text-[11px] text-slate-400">ítems activos</span>
           </div>
           <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
             <Boxes className="w-5 h-5" />
@@ -276,7 +240,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             <p className="text-2xl font-bold font-mono text-slate-900 tabular-nums">
               ${metrics.totalCostVal}
             </p>
-            <span className="text-[11px] text-slate-400">inversión en anaquel</span>
+            <span className="text-[11px] text-slate-400">inversión en almacén</span>
           </div>
           <div className="w-10 h-10 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center">
             <DollarSign className="w-5 h-5" />
@@ -320,12 +284,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       {/* Action Bar & Filters */}
       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs mb-4 space-y-3">
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-          {/* Search Box */}
           <div className="relative flex-1 max-w-md">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="Buscar por código de barras, nombre o departamento..."
+              placeholder="Buscar insumo o materia prima..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-4 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
@@ -340,7 +303,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             )}
           </div>
 
-          {/* Department dropdown */}
           <div className="flex items-center gap-2">
             <select
               value={categoryFilter}
@@ -349,7 +311,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             >
               {categories.map((c) => (
                 <option key={c} value={c}>
-                  {c === 'Todas' ? 'Todos los Departamentos' : c}
+                  {c === 'Todas' ? 'Todas las Categorías' : c}
                 </option>
               ))}
             </select>
@@ -370,7 +332,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors shadow-xs shrink-0"
             >
               <Plus className="w-4 h-4" />
-              <span>Nuevo Producto</span>
+              <span>Nuevo Insumo</span>
             </button>
           </div>
         </div>
@@ -387,43 +349,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           >
             Todos ({products.length})
           </button>
-
-          <button
-            onClick={() => setStatusFilter('flavors')}
-            className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors whitespace-nowrap flex items-center gap-1 ${
-              statusFilter === 'flavors'
-                ? 'bg-pink-600 text-white shadow-xs'
-                : 'bg-pink-50 text-pink-700 hover:bg-pink-100'
-            }`}
-          >
-            <span>🍧</span>
-            <span>Sabores en Bacha</span>
-          </button>
-
-          <button
-            onClick={() => setStatusFilter('presentations')}
-            className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors whitespace-nowrap flex items-center gap-1 ${
-              statusFilter === 'presentations'
-                ? 'bg-rose-600 text-white shadow-xs'
-                : 'bg-rose-50 text-rose-700 hover:bg-rose-100'
-            }`}
-          >
-            <span>🍨</span>
-            <span>Envases y Kilos</span>
-          </button>
-
-          <button
-            onClick={() => setStatusFilter('supplies')}
-            className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors whitespace-nowrap flex items-center gap-1 ${
-              statusFilter === 'supplies'
-                ? 'bg-emerald-600 text-white shadow-xs'
-                : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-            }`}
-          >
-            <span>🥄</span>
-            <span>Insumos y Utilidades</span>
-          </button>
-
           <button
             onClick={() => setStatusFilter('low')}
             className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors whitespace-nowrap ${
@@ -469,11 +394,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   className="py-3 px-4 cursor-pointer hover:text-slate-800"
                 >
                   <div className="flex items-center gap-1">
-                    <span>Producto</span>
+                    <span>Insumo / Producto</span>
                     <ArrowUpDown className="w-3 h-3" />
                   </div>
                 </th>
-                <th className="py-3 px-3">Departamento</th>
+                <th className="py-3 px-3">Categoría</th>
                 <th className="py-3 px-3 text-right">Costo</th>
                 <th
                   onClick={() => toggleSort('sale_price')}
@@ -503,7 +428,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   </div>
                 </th>
                 <th className="py-3 px-3 text-center">Estado</th>
-                <th className="py-3 px-3">Trazabilidad / Fechas</th>
+                <th className="py-3 px-3">Vencimiento / Lote</th>
                 <th className="py-3 px-4 text-center">Acciones</th>
               </tr>
             </thead>
@@ -511,7 +436,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               {filteredProducts.length === 0 ? (
                 <tr>
                   <td colSpan={10} className="py-12 text-center text-slate-400">
-                    No se encontraron productos que coincidan con los filtros.
+                    No se encontraron registros en el inventario.
                   </td>
                 </tr>
               ) : (
@@ -535,24 +460,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         {p.barcode}
                       </td>
                       <td className="py-3 px-4 font-semibold text-slate-900">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span>{p.name}</span>
-                          {p.is_icecream_presentation && (
-                            <span className="text-[10px] font-bold text-pink-700 bg-pink-100 px-1.5 py-0.5 rounded">
-                              🍨 {p.max_flavors} sabores · {p.total_grams}g
-                            </span>
-                          )}
-                          {p.is_raw_flavor && (
-                            <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">
-                              🍧 Bacha a Granel
-                            </span>
-                          )}
-                          {p.is_supply && (
-                            <span className="text-[10px] font-bold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded">
-                              🥄 Insumo / Utilidad
-                            </span>
-                          )}
-                        </div>
+                        <span>{p.name}</span>
                         {p.batch_number && (
                           <span className="block text-[10px] text-slate-400 font-mono mt-0.5">
                             Lote: {p.batch_number}
@@ -599,12 +507,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         )}
                       </td>
                       <td className="py-3 px-3 whitespace-nowrap text-[11px]">
-                        {p.manufacturing_date && (
-                          <div className="text-blue-700 font-semibold flex items-center gap-1">
-                            <span className="text-slate-400 font-normal">Elab:</span>
-                            <span>{p.manufacturing_date}</span>
-                          </div>
-                        )}
                         {p.expiry_date ? (
                           <div
                             className={`flex items-center gap-1 ${
@@ -615,7 +517,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                             <span>{p.expiry_date}</span>
                           </div>
                         ) : (
-                          !p.manufacturing_date && <span className="text-slate-300">-</span>
+                          <span className="text-slate-300">-</span>
                         )}
                       </td>
                       <td className="py-3 px-4 text-center whitespace-nowrap">
@@ -632,7 +534,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                               setEditingProduct(p);
                               setIsFormOpen(true);
                             }}
-                            title="Editar datos de producto"
+                            title="Editar datos de insumo"
                             className="p-1.5 text-slate-600 hover:text-blue-700 hover:bg-slate-100 rounded transition-colors"
                           >
                             <Edit2 className="w-4 h-4" />
@@ -655,7 +557,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                           ) : (
                             <button
                               onClick={() => setDeletingId(p.id)}
-                              title="Eliminar de catálogo"
+                              title="Eliminar"
                               className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-slate-100 rounded transition-colors"
                             >
                               <Trash2 className="w-4 h-4" />
