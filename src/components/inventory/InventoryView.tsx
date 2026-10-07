@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Product, StockMovementType } from '../../types';
 import { StorageService } from '../../services/storageService';
 import { ProductFormModal } from './ProductFormModal';
@@ -41,6 +41,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const [sortField, setSortField] = useState<'name' | 'stock' | 'sale_price' | 'margin'>('name');
   const [sortAsc, setSortAsc] = useState(true);
 
+  // ✅ Sugerencia 3: Limpiar el estado de eliminación si cambian los filtros o la búsqueda
+  useEffect(() => {
+    setDeletingId(null);
+  }, [searchQuery, categoryFilter, statusFilter]);
+
   // Categories list dynamically derived from catalog
   const categories: string[] = useMemo(() => {
     const set = new Set<string>();
@@ -50,7 +55,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     return ['Todas', ...Array.from(set)];
   }, [products]);
 
-  // Overview metrics
+  // Overview metrics & Unificación de fechas de referencia
   const metrics = useMemo(() => {
     let totalCostVal = 0;
     let totalRetailVal = 0;
@@ -58,9 +63,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     let outOfStockCount = 0;
     let expiringCount = 0;
 
-    const today = new Date();
+    const now = new Date();
     const fifteenDaysFromNow = new Date();
-    fifteenDaysFromNow.setDate(today.getDate() + 15);
+    fifteenDaysFromNow.setDate(now.getDate() + 15);
 
     products.forEach((p) => {
       totalCostVal += p.stock * p.cost_price;
@@ -94,11 +99,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     };
   }, [products]);
 
-  // Filtered & Sorted products
+  // Filtered & Sorted products (utilizando las mismas referencias de fechas estables)
   const filteredProducts = useMemo(() => {
-    const today = new Date();
+    const now = new Date();
     const fifteenDaysFromNow = new Date();
-    fifteenDaysFromNow.setDate(today.getDate() + 15);
+    fifteenDaysFromNow.setDate(now.getDate() + 15);
 
     return products
       .filter((p) => {

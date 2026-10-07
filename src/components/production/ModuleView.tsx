@@ -1,4 +1,3 @@
-// src/components/production/RecipesView.tsx
 import React from 'react';
 import { Product, RecipeItem } from '../../types';
 import { RecipeFormModal } from './RecipeFormModal';
@@ -13,7 +12,7 @@ import {
   Trash2,
   Eye,
   ArrowUpDown,
-  Layers
+  Factory // <-- Icono más intuitivo y acorde para producción / manufactura
 } from 'lucide-react';
 
 interface RecipesViewProps {
@@ -180,7 +179,8 @@ export const RecipesView: React.FC<RecipesViewProps> = ({
                           title="Registrar Producción / Elaborar"
                           className="p-1.5 text-slate-600 hover:text-amber-600 hover:bg-slate-100 rounded transition-colors"
                         >
-                          <Layers className="w-4 h-4" />
+                          {/* Icono actualizado a Factory para denotar producción de forma intuitiva */}
+                          <Factory className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => setViewingProduct(r)}
@@ -247,10 +247,11 @@ export const RecipesView: React.FC<RecipesViewProps> = ({
         />
       )}
 
-      {/* Modal de Registro de Producción */}
+      {/* Modal de Registro de Producción (Corregido pasando 'products') */}
       <RecipeProductionModal
         product={producingProduct}
         productionQty={productionQty}
+        products={products}
         onQtyChange={setProductionQty}
         onClose={() => setProducingProduct(null)}
         onConfirm={handleRegisterProduction}

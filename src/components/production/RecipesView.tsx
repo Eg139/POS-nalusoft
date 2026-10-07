@@ -13,6 +13,7 @@ import {
   Edit2,
   Trash2,
   Eye,
+  ChefHat,
   ArrowUpDown,
   Layers
 } from 'lucide-react';
@@ -179,7 +180,7 @@ export const RecipesView: React.FC<RecipesViewProps> = ({
                           title="Registrar Producción / Elaborar"
                           className="p-1.5 text-slate-600 hover:text-amber-600 hover:bg-slate-100 rounded transition-colors"
                         >
-                          <Layers className="w-4 h-4" />
+                          <ChefHat className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => setViewingProduct(r)}
@@ -250,6 +251,7 @@ export const RecipesView: React.FC<RecipesViewProps> = ({
       <RecipeProductionModal
         product={producingProduct}
         productionQty={productionQty}
+        products={products} // <-- Le pasamos los productos para validar el stock
         onQtyChange={setProductionQty}
         onClose={() => setProducingProduct(null)}
         onConfirm={handleRegisterProduction}

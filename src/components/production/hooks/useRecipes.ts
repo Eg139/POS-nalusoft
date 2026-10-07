@@ -1,4 +1,3 @@
-// src/components/production/useRecipes.ts
 import { useState, useMemo } from 'react';
 import { Product, RecipeItem } from '../../../types';
 import { StorageService } from '../../../services/storageService';
@@ -39,21 +38,21 @@ export function useRecipes(
     return ['Todas', ...Array.from(set)];
   }, [recipes]);
 
-  // Métricas
+  // Métricas (Retornamos números limpios para evitar problemas lógicos)
   const metrics = useMemo(() => {
-    const totalCount = recipes.length;
-    let totalCost = 0;
-    recipes.forEach((r) => {
-      totalCost += r.cost_price || 0;
-    });
-    const avgCost = totalCount > 0 ? totalCost / totalCount : 0;
+      const totalCount = recipes.length;
+      let totalCost = 0;
+      recipes.forEach((r) => {
+        totalCost += r.cost_price || 0;
+      });
+      const avgCost = totalCount > 0 ? totalCost / totalCount : 0;
 
-    return {
-      totalCount,
-      totalCost: totalCost.toFixed(2),
-      avgCost: avgCost.toFixed(2),
-    };
-  }, [recipes]);
+      return {
+        totalCount,
+        totalCost, // number puro
+        avgCost,   // number puro
+      };
+    }, [recipes]);
 
   // Filtrado y ordenamiento de la tabla
   const filteredRecipes = useMemo(() => {
@@ -131,8 +130,23 @@ export function useRecipes(
     setEditingProduct(null);
   };
 
+  // Validación defensiva agregada al registrar producción
   const handleRegisterProduction = () => {
     if (!producingProduct) return;
+
+    const recipeItems = producingProduct.recipe || [];
+    const hasStockIssues = recipeItems.some((item) => {
+      const ingredientProduct = products.find((p) => p.id === item.ingredient_id);
+      const currentStock = ingredientProduct ? ingredientProduct.stock : 0;
+      const requiredTotal = item.quantity_needed * productionQty;
+      return currentStock < requiredTotal;
+    });
+
+    if (hasStockIssues) {
+      alert('Operación cancelada: No hay suficiente stock de uno o más ingredientes.');
+      return;
+    }
+
     StorageService.registerProduction(producingProduct.id, productionQty);
     setProducingProduct(null);
     setProductionQty(1);

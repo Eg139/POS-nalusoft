@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Product, RecipeItem, ProductUnit } from '../../types';
 import { StorageService } from '../../services/storageService';
 import { X, Plus, Trash2, Save, IceCream } from 'lucide-react';
@@ -12,6 +12,7 @@ interface RecipeFormModalProps {
 }
 
 export const RecipeFormModal: React.FC<RecipeFormModalProps> = ({ 
+  isOpen,
   product, 
   products, 
   onClose, 
@@ -20,22 +21,38 @@ export const RecipeFormModal: React.FC<RecipeFormModalProps> = ({
   const allProducts = products.length > 0 ? products : StorageService.getProducts();
   const availableIngredients = allProducts.filter(p => p.id !== product?.id);
 
+  // Estados locales
   const [name, setName] = useState(product?.name || '');
   const [category, setCategory] = useState(product?.category || 'Elaborados');
   const [salePrice, setSalePrice] = useState<number>(product?.sale_price || 0);
   const [unit, setUnit] = useState<ProductUnit>(product?.unit || 'kg');
-
-  // Usamos la propiedad exacta de tu tipo Product: is_raw_flavor
   const [isRawFlavor, setIsRawFlavor] = useState<boolean>(product?.is_raw_flavor ?? false);
-
   const [hasRecipe, setHasRecipe] = useState<boolean>(product?.has_recipe ?? true);
   const [recipeItems, setRecipeItems] = useState<RecipeItem[]>(product?.recipe || []);
 
   const [selectedIngredientId, setSelectedIngredientId] = useState('');
   const [quantity, setQuantity] = useState<number>(1);
 
+  // Sincronizar estados si el producto cambia mientras el modal está abierto
+  useEffect(() => {
+    setName(product?.name || '');
+    setCategory(product?.category || 'Elaborados');
+    setSalePrice(product?.sale_price || 0);
+    setUnit(product?.unit || 'kg');
+    setIsRawFlavor(product?.is_raw_flavor ?? false);
+    setHasRecipe(product?.has_recipe ?? true);
+    setRecipeItems(product?.recipe || []);
+  }, [product, isOpen]);
+
+  if (!isOpen) return null;
+
   const handleAddIngredient = () => {
     if (!selectedIngredientId) return;
+    if (quantity <= 0) {
+      alert('La cantidad debe ser mayor a 0.');
+      return;
+    }
+
     const ing = allProducts.find(p => p.id === selectedIngredientId);
     if (!ing) return;
 
@@ -95,13 +112,13 @@ export const RecipeFormModal: React.FC<RecipeFormModalProps> = ({
       tax_rate: product?.tax_rate || 0,
       has_recipe: hasRecipe,
       recipe: formattedRecipe,
-      is_raw_flavor: isRawFlavor, // Guardamos la bandera correctamente en el producto
+      is_raw_flavor: isRawFlavor,
       created_at: product?.created_at || new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
 
+    // Guardado centralizado en el StorageService
     StorageService.saveProduct(productData);
-    StorageService.updateProductRecipe(targetId, formattedRecipe, hasRecipe);
     
     onSave(targetId, formattedRecipe, hasRecipe);
     onClose();
@@ -128,14 +145,14 @@ export const RecipeFormModal: React.FC<RecipeFormModalProps> = ({
         {/* Body */}
         <div className="p-6 space-y-5 overflow-y-auto flex-1">
           
-          {/* Selector para indicar si es un sabor de helado a granel (is_raw_flavor) */}
+          {/* Selector para indicar si es un sabor de helado a granel */}
           <div className="bg-amber-50/60 border border-amber-200 p-4 rounded-lg flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-amber-100 text-amber-700 rounded-lg">
                 <IceCream className="w-5 h-5" />
               </div>
               <div>
-                <span className="font-semibold text-gray-800 text-sm block">¿Es un sabor de helado a granel (bacht)?</span>
+                <span className="font-semibold text-gray-800 text-sm block">¿Es un sabor de helado a granel (batch)?</span>
                 <p className="text-xs text-gray-600">Se usará en el punto de venta para armar potes (1kg, 1/2kg, etc.)</p>
               </div>
             </div>
@@ -164,7 +181,7 @@ export const RecipeFormModal: React.FC<RecipeFormModalProps> = ({
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder={isRawFlavor ? "Ej. Dulce de Leche Granizado" : "Ej. Base de Crema Neutra"}
+                placeholder={isRawFlavor ? "Ej. Dulce de Leche Granizado" : "Ej. Sándwich de Milanesa"}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none"
               />
             </div>
@@ -175,7 +192,7 @@ export const RecipeFormModal: React.FC<RecipeFormModalProps> = ({
                 value={category}
                 disabled={isRawFlavor}
                 onChange={(e) => setCategory(e.target.value)}
-                placeholder="Ej. Helados, Postres, Bebidas"
+                placeholder="Ej. Comidas, Bebidas, Helados"
                 className={`w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none ${
                   isRawFlavor ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-white focus:ring-2 focus:ring-blue-500'
                 }`}
@@ -185,7 +202,7 @@ export const RecipeFormModal: React.FC<RecipeFormModalProps> = ({
               <label className="block text-xs font-semibold text-gray-700 mb-1">Precio de Venta ($)</label>
               <input
                 type="number"
-                step="0.01"
+                step="0.1"
                 min="0"
                 value={salePrice}
                 onChange={(e) => setSalePrice(parseFloat(e.target.value) || 0)}
@@ -248,8 +265,8 @@ export const RecipeFormModal: React.FC<RecipeFormModalProps> = ({
                   <label className="block text-xs font-semibold text-gray-700 mb-1">Cantidad necesaria</label>
                   <input
                     type="number"
-                    step="0.01"
-                    min="0.001"
+                    step="0.1"
+                    min="0.1"
                     value={quantity}
                     onChange={(e) => setQuantity(parseFloat(e.target.value) || 0)}
                     className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none"

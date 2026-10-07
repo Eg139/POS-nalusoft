@@ -5,10 +5,7 @@ import {
   Vault,
   X,
   CheckCircle2,
-  DollarSign,
   AlertCircle,
-  TrendingUp,
-  Receipt,
   Calculator
 } from 'lucide-react';
 
@@ -29,16 +26,16 @@ export const CashSessionModal: React.FC<CashSessionModalProps> = ({
   const [isOpeningNew, setIsOpeningNew] = useState<boolean>(false);
   const [newCashier, setNewCashier] = useState<string>('Cajero 01 - Eric G.');
   const [newInitialCash, setNewInitialCash] = useState<string>('1000.00');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const parsedActual = parseFloat(actualCash) || 0;
   const difference = Number((parsedActual - session.expected_cash).toFixed(2));
-
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Handle cash withdrawal (retiro de efectivo / pago a proveedor)
   const handleWithdrawal = (e: React.FormEvent) => {
     e.preventDefault();
     const amount = parseFloat(withdrawalAmount) || 0;
+    
     if (amount <= 0 || amount > session.expected_cash) {
       setErrorMessage('Monto de retiro inválido o excede el efectivo en caja.');
       setTimeout(() => setErrorMessage(null), 3000);
@@ -53,6 +50,7 @@ export const CashSessionModal: React.FC<CashSessionModalProps> = ({
     StorageService.updateCashSession(updated);
     setWithdrawalAmount('');
     setWithdrawalReason('');
+    setErrorMessage(null);
     onRefreshData();
   };
 
@@ -195,6 +193,14 @@ export const CashSessionModal: React.FC<CashSessionModalProps> = ({
             {/* Retiro de Efectivo Form */}
             <form onSubmit={handleWithdrawal} className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
               <span className="text-xs font-bold text-slate-700 block">Registrar Retiro de Efectivo / Gasto Menor</span>
+              
+              {errorMessage && (
+                <div className="p-2 bg-rose-50 border border-rose-200 rounded-lg text-rose-800 text-[11px] flex items-center gap-1.5 animate-in fade-in">
+                  <AlertCircle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                  <span>{errorMessage}</span>
+                </div>
+              )}
+
               <div className="flex gap-2">
                 <input
                   type="number"

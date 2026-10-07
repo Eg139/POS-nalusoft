@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, CheckCircle2, ShoppingBag, IceCreamCone } from 'lucide-react';
+import { X, IceCream, ShoppingCart, Sparkles } from 'lucide-react';
 
 interface StoreModeModalProps {
   currentMode: 'supermarket' | 'icecream';
@@ -41,8 +41,8 @@ export const StoreModeModal: React.FC<StoreModeModalProps> = ({
                 : 'border-slate-200 hover:border-pink-300 hover:bg-slate-50'
             }`}
           >
-            <div className="w-12 h-12 rounded-xl bg-pink-100 text-pink-600 flex items-center justify-center shrink-0 text-2xl shadow-xs">
-              🍨
+            <div className="w-12 h-12 rounded-xl bg-pink-100 text-pink-600 flex items-center justify-center shrink-0 shadow-xs">
+              <IceCream className="w-6 h-6" />
             </div>
             <div className="flex-1">
               <div className="flex items-center justify-between">
@@ -70,8 +70,8 @@ export const StoreModeModal: React.FC<StoreModeModalProps> = ({
                 : 'border-slate-200 hover:border-emerald-300 hover:bg-slate-50'
             }`}
           >
-            <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 text-2xl shadow-xs">
-              🛒
+            <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 shadow-xs">
+              <ShoppingCart className="w-6 h-6" />
             </div>
             <div className="flex-1">
               <div className="flex items-center justify-between">
@@ -95,7 +95,9 @@ export const StoreModeModal: React.FC<StoreModeModalProps> = ({
             className="w-full text-left p-3 rounded-xl border border-slate-200 hover:border-slate-400 hover:bg-slate-50 transition-all flex items-center justify-between"
           >
             <div className="flex items-center gap-3">
-              <span className="text-lg">✨</span>
+              <div className="w-10 h-10 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
+                <Sparkles className="w-5 h-5 text-amber-500" />
+              </div>
               <div>
                 <h5 className="font-bold text-xs text-slate-800">Empezar Catálogo Vacío (Desde Cero)</h5>
                 <p className="text-[11px] text-slate-500">Limpia todos los productos demo para que cargues solo los tuyos.</p>

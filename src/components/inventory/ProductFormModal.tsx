@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Product, ProductCategory, ProductUnit } from '../../types';
+import { Product, ProductUnit } from '../../types';
 import { X, Check, Sparkles, AlertCircle } from 'lucide-react';
 
 interface ProductFormModalProps {
@@ -45,19 +45,17 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const markupPercent = parsedCost > 0 ? (((parsedSale - parsedCost) / parsedCost) * 100).toFixed(1) : '0';
 
   const generateRandomBarcode = () => {
-    // Generate valid 12-digit EAN-like code
     const random12 = '750' + Math.floor(100000000 + Math.random() * 900000000).toString();
     setBarcode(random12);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // ✅ Corregido con SubmitEvent para evitar el aviso de deprecación
+  const handleSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setErrorMsg(null);
+
     if (!name.trim()) {
       setErrorMsg('El nombre del producto es obligatorio.');
-      return;
-    }
-    if (!barcode.trim()) {
-      setErrorMsg('El código de barras es obligatorio.');
       return;
     }
     if (parsedSale <= 0) {
@@ -65,9 +63,12 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       return;
     }
 
+    // Si no se ingresa código de barras, generamos uno interno automático para comercios de barrio
+    const finalBarcode = barcode.trim() || `INT-${Math.floor(1000 + Math.random() * 9000)}`;
+
     const newProd: Product = {
       id: product?.id || `prod-${Date.now()}`,
-      barcode: barcode.trim(),
+      barcode: finalBarcode,
       name: name.trim(),
       category,
       cost_price: parsedCost,
@@ -111,7 +112,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const allSuggestedCategories = Array.from(new Set([...categories, ...defaultCategories]));
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/65 backdrop-blur-xs p-4 overflow-y-auto">
       <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full border border-slate-200 overflow-hidden flex flex-col my-auto">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 bg-slate-900 text-white">
@@ -138,7 +139,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <div className="flex justify-between items-center mb-1">
-                <label className="text-xs font-semibold text-slate-700">Código de Barras *</label>
+                <label className="text-xs font-semibold text-slate-700">Código de Barras (Opcional)</label>
                 <button
                   type="button"
                   onClick={generateRandomBarcode}
@@ -150,10 +151,9 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               </div>
               <input
                 type="text"
-                required
                 value={barcode}
                 onChange={(e) => setBarcode(e.target.value)}
-                placeholder="750100012345"
+                placeholder="Automático si se deja vacío"
                 className="w-full px-3 py-2 text-sm font-mono bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
               />
             </div>
@@ -167,7 +167,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Ej. Arroz Súper Extra 1 kg"
+                placeholder="Ej. Helado de Chocolate 1kg"
                 className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
               />
             </div>
@@ -177,7 +177,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Departamento / Categoría (Seleccionar o escribir nueva)
+                Departamento / Categoría
               </label>
               <input
                 type="text"
@@ -185,7 +185,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                 required
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                placeholder="Ej. Helados por Kilo, Conos, Paletas..."
+                placeholder="Ej. Helados por Kilo, Conos..."
                 className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
               />
               <datalist id="category-suggestions">
@@ -261,8 +261,8 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                   onChange={(e) => setTaxRate(e.target.value)}
                   className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
                 >
-                  <option value="0">0% (Alimentos básicos)</option>
-                  <option value="16">16% (IVA General)</option>
+                  <option value="0">0% (Exento / Alimentos)</option>
+                  <option value="16">16% (General)</option>
                   <option value="8">8% (Frontera)</option>
                 </select>
               </div>
@@ -321,171 +321,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                 onChange={(e) => setMinStockAlert(e.target.value)}
                 className="w-full px-3 py-2 text-sm font-mono tabular-nums bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
               />
-              <p className="text-[10px] text-slate-400 mt-1">
-                Se notificará en el panel de alarmas cuando baje de esta cantidad.
-              </p>
             </div>
-          </div>
-
-          {/* Row 5: Manufacturing Date, Expiration & Batch */}
-          <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
-            <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-              <span>📅</span>
-              <span>Trazabilidad: Fabricación, Caducidad y Lote</span>
-            </h4>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Fecha de Fabricación
-                </label>
-                <input
-                  type="date"
-                  value={manufacturingDate}
-                  onChange={(e) => setManufacturingDate(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Fecha de Caducidad
-                </label>
-                <input
-                  type="date"
-                  value={expiryDate}
-                  onChange={(e) => setExpiryDate(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Lote / N° de Bacha
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ej. BACHA-2026-01"
-                  value={batchNumber}
-                  onChange={(e) => setBatchNumber(e.target.value)}
-                  className="w-full px-3 py-2 text-xs font-mono bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Row 6: Tipo de Producto en Heladería */}
-          <div className="p-3.5 bg-pink-50/70 border border-pink-200 rounded-xl space-y-3">
-            <h4 className="text-xs font-bold text-pink-950 uppercase tracking-wider flex items-center gap-1.5">
-              <span>🍨</span>
-              <span>Configuración de Heladería</span>
-            </h4>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <label className="flex items-start gap-2 p-2.5 bg-white rounded-lg border border-pink-200 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={isRawFlavor}
-                  onChange={(e) => {
-                    setIsRawFlavor(e.target.checked);
-                    if (e.target.checked) {
-                      setIsIceCreamPresentation(false);
-                      setIsSupply(false);
-                      setUnit('kg');
-                    }
-                  }}
-                  className="mt-0.5 rounded text-pink-600 focus:ring-pink-500"
-                />
-                <div>
-                  <span className="text-xs font-bold text-slate-800 block">Sabor en Bacha</span>
-                  <span className="text-[10px] text-slate-500 block">
-                    Materia prima a granel en kg para servir en mostrador.
-                  </span>
-                </div>
-              </label>
-
-              <label className="flex items-start gap-2 p-2.5 bg-white rounded-lg border border-pink-200 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={isIceCreamPresentation}
-                  onChange={(e) => {
-                    setIsIceCreamPresentation(e.target.checked);
-                    if (e.target.checked) {
-                      setIsRawFlavor(false);
-                      setIsSupply(false);
-                      setUnit('pz');
-                    }
-                  }}
-                  className="mt-0.5 rounded text-pink-600 focus:ring-pink-500"
-                />
-                <div>
-                  <span className="text-xs font-bold text-slate-800 block">Presentación / Envase</span>
-                  <span className="text-[10px] text-slate-500 block">
-                    Cono, vasito o pote que abre el modal de sabores al vender.
-                  </span>
-                </div>
-              </label>
-
-              <label className="flex items-start gap-2 p-2.5 bg-white rounded-lg border border-pink-200 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={isSupply}
-                  onChange={(e) => {
-                    setIsSupply(e.target.checked);
-                    if (e.target.checked) {
-                      setIsRawFlavor(false);
-                      setIsIceCreamPresentation(false);
-                      setUnit('pz');
-                    }
-                  }}
-                  className="mt-0.5 rounded text-pink-600 focus:ring-pink-500"
-                />
-                <div>
-                  <span className="text-xs font-bold text-slate-800 block">Insumo / Utilidad</span>
-                  <span className="text-[10px] text-slate-500 block">
-                    Cucharitas, servilletas o conos que se descuentan en la venta.
-                  </span>
-                </div>
-              </label>
-            </div>
-
-            {/* If presentation is checked, show grams and combinations */}
-            {isIceCreamPresentation && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-pink-200">
-                <div>
-                  <label className="block text-xs font-semibold text-pink-900 mb-1">
-                    Gramaje Total de Helado (Gramos)
-                  </label>
-                  <input
-                    type="number"
-                    step="1"
-                    min="1"
-                    value={totalGrams}
-                    onChange={(e) => setTotalGrams(e.target.value)}
-                    placeholder="Ej. 1000, 500, 250, 180, 160, 120, 80"
-                    className="w-full px-3 py-2 text-xs font-mono font-bold bg-white border border-pink-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-pink-500"
-                  />
-                  <span className="text-[10px] text-pink-700 block mt-0.5">
-                    Ej: 1000 para 1kg, 500 para 1/2kg, 160 para Cono Doble, 80 para Cono Simple.
-                  </span>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-pink-900 mb-1">
-                    Límite de Combinaciones / Sabores
-                  </label>
-                  <select
-                    value={maxFlavors}
-                    onChange={(e) => setMaxFlavors(e.target.value)}
-                    className="w-full px-3 py-2 text-xs font-bold bg-white border border-pink-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-pink-500"
-                  >
-                    <option value="1">1 Sabor Simple</option>
-                    <option value="2">Hasta 2 Sabores</option>
-                    <option value="3">Hasta 3 Sabores</option>
-                    <option value="4">Hasta 4 Sabores (Exclusivo 1 Kg)</option>
-                  </select>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Modal Actions */}

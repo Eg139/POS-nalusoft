@@ -7,13 +7,13 @@ import {
   PiggyBank,
   Percent,
   Download,
-  Calendar,
-  AlertCircle,
   CreditCard,
   Banknote,
   QrCode,
-  ArrowUpRight
+  X
 } from 'lucide-react';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 
 interface ReportsViewProps {
   sales: Sale[];
@@ -28,7 +28,11 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ sales, products }) => 
   const filteredSales = useMemo(() => {
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-    const sevenDaysAgo = startOfToday - 7 * 24 * 60 * 60 * 1000;
+    
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    const sevenDaysAgo = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
 
     return sales.filter((s) => {
@@ -54,7 +58,6 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ sales, products }) => 
     let transferCount = 0;
     let transferTotal = 0;
 
-    // Item & Category breakdown
     const productStatsMap: Record<
       string,
       { name: string; category: string; qty: number; revenue: number; profit: number; barcode: string }
@@ -69,10 +72,11 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ sales, products }) => 
       totalTax += s.tax;
       totalDiscount += s.discount;
 
-      if (s.payment_method === 'efectivo') {
+      const method = s.payment_method?.toLowerCase().trim() || '';
+      if (method.includes('efectivo') || method === 'cash') {
         cashCount++;
         cashTotal += s.total;
-      } else if (s.payment_method === 'tarjeta') {
+      } else if (method.includes('tarjeta') || method.includes('card')) {
         cardCount++;
         cardTotal += s.total;
       } else {
@@ -81,7 +85,6 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ sales, products }) => 
       }
 
       s.items.forEach((item) => {
-        // Product stats
         if (!productStatsMap[item.product_id]) {
           productStatsMap[item.product_id] = {
             name: item.product_name,
@@ -96,7 +99,6 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ sales, products }) => 
         productStatsMap[item.product_id].revenue += item.total;
         productStatsMap[item.product_id].profit += item.profit;
 
-        // Category stats
         if (!categoryStatsMap[item.category]) {
           categoryStatsMap[item.category] = { revenue: 0, profit: 0, itemsSold: 0 };
         }
@@ -151,7 +153,6 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ sales, products }) => 
   const dailyChartData = useMemo(() => {
     const daysMap: Record<string, { dateStr: string; label: string; revenue: number; profit: number }> = {};
 
-    // Sort sales ascending by date
     const sorted = [...filteredSales].sort(
       (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
     );
@@ -168,12 +169,175 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ sales, products }) => 
       daysMap[key].profit += s.net_profit;
     });
 
-    const entries = Object.values(daysMap);
-    return entries;
+    return Object.values(daysMap);
   }, [filteredSales]);
 
-  // Max revenue for chart scaling
   const maxDayRevenue = Math.max(...dailyChartData.map((d) => d.revenue), 100);
+
+  // Export Sales Report Excel (ExcelJS)
+const handleExportExcelJS = async () => {
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'Sistema POS';
+    workbook.created = new Date();
+
+    const worksheet = workbook.addWorksheet('Reporte de Ventas');
+
+    // 1. Añadir un Encabezado / Título Ejecutivo en las primeras filas
+    worksheet.mergeCells('B2:K2');
+    const titleCell = worksheet.getCell('B2');
+    titleCell.value = 'REPORTE EJECUTIVO DE VENTAS Y RENTABILIDAD';
+    titleCell.font = { name: 'Arial', size: 16, bold: true, color: { argb: '1E293B' } };
+    titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+    worksheet.mergeCells('B3:K3');
+    const subtitleCell = worksheet.getCell('B3');
+    subtitleCell.value = `Período analizado: ${dateRange.toUpperCase()} — Generado el ${new Date().toLocaleString('es-MX')}`;
+    subtitleCell.font = { name: 'Arial', size: 10, italic: true, color: { argb: '64748B' } };
+    subtitleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+    // Dejar una fila libre y definir las columnas de la tabla principal en la fila 5
+    worksheet.addRow([]); // Fila 4 vacía
+
+    // 2. Definición de columnas con cabeceras (Fila 5)
+    const headerRowNumber = 5;
+    worksheet.columns = [
+      { key: 'spacer', width: 4 }, // Margen estético izquierdo
+      { header: 'Folio', key: 'folio', width: 16 },
+      { header: 'Fecha y Hora', key: 'created_at', width: 22 },
+      { header: 'Cajero', key: 'cashier_name', width: 20 },
+      { header: 'Método Pago', key: 'payment_method', width: 18 },
+      { header: 'Subtotal', key: 'subtotal', width: 15 },
+      { header: 'Descuento', key: 'discount', width: 15 },
+      { header: 'IVA', key: 'tax', width: 15 },
+      { header: 'Total', key: 'total', width: 15 },
+      { header: 'Costo Total', key: 'cost_total', width: 15 },
+      { header: 'Ganancia Neta', key: 'net_profit', width: 16 },
+      { header: 'Margen (%)', key: 'profit_margin', width: 15 },
+    ];
+
+    const headerRow = worksheet.getRow(headerRowNumber);
+    headerRow.height = 24;
+    headerRow.font = { name: 'Arial', size: 11, bold: true, color: { argb: 'FFFFFF' } };
+    headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
+
+    // Estilo de fondo oscuro moderno (Slate-800) para las cabeceras
+    headerRow.eachCell((cell, colNumber) => {
+      if (colNumber > 1) {
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: '1E293B' },
+        };
+        cell.border = {
+          top: { style: 'thin', color: { argb: '0F172A' } },
+          bottom: { style: 'medium', color: { argb: '0F172A' } },
+          left: { style: 'thin', color: { argb: '334155' } },
+          right: { style: 'thin', color: { argb: '334155' } },
+        };
+      }
+    });
+
+    // 3. Inserción de filas de datos con bordes finos y colores alternados (Filas Cebra)
+    filteredSales.forEach((s, index) => {
+      const rowData = {
+        spacer: '',
+        folio: s.folio,
+        created_at: new Date(s.created_at).toLocaleString('es-MX'),
+        cashier_name: s.cashier_name || 'N/D',
+        payment_method: s.payment_method || 'Efectivo',
+        subtotal: s.subtotal,
+        discount: s.discount,
+        tax: s.tax,
+        total: s.total,
+        cost_total: s.cost_total,
+        net_profit: s.net_profit,
+        profit_margin: Number((s.profit_margin / 100).toFixed(4)), // Formato porcentaje en Excel
+      };
+
+      const row = worksheet.addRow(rowData);
+      row.height = 20;
+      const isEven = index % 2 === 0;
+      const rowBgColor = isEven ? 'F8FAFC' : 'FFFFFF'; // Blanco y Gris muy suave alternado
+
+      row.eachCell((cell, colNumber) => {
+        if (colNumber > 1) {
+          cell.font = { name: 'Arial', size: 10, color: { argb: '334155' } };
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: rowBgColor },
+          };
+          cell.border = {
+            top: { style: 'thin', color: { argb: 'E2E8F0' } },
+            bottom: { style: 'thin', color: { argb: 'E2E8F0' } },
+            left: { style: 'thin', color: { argb: 'E2E8F0' } },
+            right: { style: 'thin', color: { argb: 'E2E8F0' } },
+          };
+
+          // Alineaciones y formatos numéricos específicos
+          if (colNumber >= 6 && colNumber <= 10) {
+            cell.numFmt = '"$"#,##0.00';
+            cell.alignment = { horizontal: 'right', vertical: 'middle' };
+          } else if (colNumber === 11) {
+            cell.numFmt = '"$"#,##0.00';
+            cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: '047857' } }; // Verde esmeralda para ganancia
+            cell.alignment = { horizontal: 'right', vertical: 'middle' };
+          } else if (colNumber === 12) {
+            cell.numFmt = '0.0%';
+            cell.alignment = { horizontal: 'right', vertical: 'middle' };
+          } else {
+            cell.alignment = { horizontal: 'left', vertical: 'middle' };
+          }
+        }
+      });
+    });
+
+    // 4. Fila de Totales Generales al final de la tabla
+    const totalRowNumber = headerRowNumber + filteredSales.length + 1;
+    const totalsRow = worksheet.getRow(totalRowNumber);
+    totalsRow.height = 22;
+
+    totalsRow.getCell(2).value = 'TOTALES';
+    totalsRow.getCell(6).value = { formula: `SUM(F${headerRowNumber + 1}:F${totalRowNumber - 1})` };
+    totalsRow.getCell(7).value = { formula: `SUM(G${headerRowNumber + 1}:G${totalRowNumber - 1})` };
+    totalsRow.getCell(8).value = { formula: `SUM(H${headerRowNumber + 1}:H${totalRowNumber - 1})` };
+    totalsRow.getCell(9).value = { formula: `SUM(I${headerRowNumber + 1}:I${totalRowNumber - 1})` };
+    totalsRow.getCell(10).value = { formula: `SUM(J${headerRowNumber + 1}:J${totalRowNumber - 1})` };
+    totalsRow.getCell(11).value = { formula: `SUM(K${headerRowNumber + 1}:K${totalRowNumber - 1})` };
+    totalsRow.getCell(12).value = { formula: `K${totalRowNumber}/I${totalRowNumber}` }; // Margen global ponderado
+
+    totalsRow.eachCell((cell, colNumber) => {
+      if (colNumber > 1) {
+        cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: '0F172A' } };
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'E2E8F0' }, // Gris distintivo para totales
+        };
+        cell.border = {
+          top: { style: 'medium', color: { argb: '94A3B8' } },
+          bottom: { style: 'double', color: { argb: '64748B' } },
+          left: { style: 'thin', color: { argb: 'CBD5E1' } },
+          right: { style: 'thin', color: { argb: 'CBD5E1' } },
+        };
+
+        if (colNumber >= 6 && colNumber <= 11) {
+          cell.numFmt = '"$"#,##0.00';
+          cell.alignment = { horizontal: 'right', vertical: 'middle' };
+        } else if (colNumber === 12) {
+          cell.numFmt = '0.0%';
+          cell.alignment = { horizontal: 'right', vertical: 'middle' };
+        } else {
+          cell.alignment = { horizontal: 'left', vertical: 'middle' };
+        }
+      }
+    });
+
+    // 5. Generar archivo y descargar
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    saveAs(blob, `reporte-financiero-ventas-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  };
 
   // Export Sales Report CSV
   const handleExportCSV = () => {
@@ -194,8 +358,8 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ sales, products }) => 
     const rows = filteredSales.map((s) => [
       s.folio,
       `"${new Date(s.created_at).toLocaleString('es-MX')}"`,
-      `"${s.cashier_name.replace(/"/g, '""')}"`,
-      s.payment_method,
+      `"${(s.cashier_name || '').replace(/"/g, '""')}"`,
+      `"${(s.payment_method || '').replace(/"/g, '""')}"`,
       s.subtotal,
       s.discount,
       s.tax,
@@ -216,7 +380,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ sales, products }) => 
   };
 
   return (
-    <div className="flex-1 flex flex-col p-4 md:p-6 overflow-y-auto bg-slate-50">
+    <div className="flex-1 flex flex-col p-4 md:p-6 overflow-y-auto bg-slate-50 relative">
       {/* Header & Date Range Selector */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
@@ -227,48 +391,29 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ sales, products }) => 
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Segmented Period Tabs */}
           <div className="flex items-center bg-white p-1 rounded-xl border border-slate-200 shadow-xs">
-            <button
-              onClick={() => setDateRange('today')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
-                dateRange === 'today' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Hoy
-            </button>
-            <button
-              onClick={() => setDateRange('7days')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
-                dateRange === '7days' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Últimos 7 días
-            </button>
-            <button
-              onClick={() => setDateRange('month')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
-                dateRange === 'month' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Este mes
-            </button>
-            <button
-              onClick={() => setDateRange('all')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
-                dateRange === 'all' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Histórico
-            </button>
+            {(['today', '7days', 'month', 'all'] as const).map((range) => (
+              <button
+                key={range}
+                onClick={() => setDateRange(range)}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
+                  dateRange === range ? 'bg-slate-900 text-white' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                {range === 'today' && 'Hoy'}
+                {range === '7days' && 'Últimos 7 días'}
+                {range === 'month' && 'Este mes'}
+                {range === 'all' && 'Histórico'}
+              </button>
+            ))}
           </div>
 
           <button
-            onClick={handleExportCSV}
+            onClick={handleExportExcelJS}
             className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 rounded-xl transition-colors shadow-xs"
           >
             <Download className="w-4 h-4" />
-            <span className="hidden sm:inline">Exportar CSV</span>
+            <span className="hidden sm:inline">Exportar Excel</span>
           </button>
         </div>
       </div>
@@ -296,9 +441,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ sales, products }) => 
           <p className="text-2xl font-extrabold font-mono text-slate-700 tabular-nums">
             ${stats.totalCost.toFixed(2)}
           </p>
-          <div className="text-[11px] text-slate-400 mt-1">
-            Costo de adquisición de productos
-          </div>
+          <div className="text-[11px] text-slate-400 mt-1">Costo de adquisición de productos</div>
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
@@ -323,9 +466,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ sales, products }) => 
           <p className="text-2xl font-extrabold font-mono text-slate-900 tabular-nums">
             ${stats.averageTicket.toFixed(2)}
           </p>
-          <div className="text-[11px] text-slate-400 mt-1">
-            Gasto promedio por cliente
-          </div>
+          <div className="text-[11px] text-slate-400 mt-1">Gasto promedio por cliente</div>
         </div>
       </div>
 
@@ -389,7 +530,6 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ sales, products }) => 
 
       {/* Grid: Categories Breakdown & Payment Methods */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        {/* Categories Performance Table (2 cols) */}
         <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
           <div className="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
             <h3 className="font-bold text-sm text-slate-800">Rendimiento por Departamento / Categoría</h3>
@@ -438,7 +578,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ sales, products }) => 
           </div>
         </div>
 
-        {/* Payment Methods Breakdown (1 col) */}
+        {/* Payment Methods Breakdown */}
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col justify-between">
           <div>
             <h3 className="font-bold text-sm text-slate-800 mb-1">Medios de Pago Recibidos</h3>
@@ -521,7 +661,6 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ sales, products }) => 
 
       {/* Grid: Top Sellers vs Top Profit Makers */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        {/* Top 5 Best Sellers */}
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
           <h3 className="font-bold text-sm text-slate-800 mb-1">Top 5 Productos Más Vendidos (Volumen)</h3>
           <p className="text-xs text-slate-500 mb-3">Artículos de mayor rotación en góndola</p>
@@ -553,7 +692,6 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ sales, products }) => 
           </div>
         </div>
 
-        {/* Top 5 Most Profitable Products */}
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
           <h3 className="font-bold text-sm text-slate-800 mb-1">Top 5 Productos Más Rentables (Ganancia Neta)</h3>
           <p className="text-xs text-slate-500 mb-3">Mayor contribución en pesos a la utilidad neta</p>
@@ -592,7 +730,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ sales, products }) => 
       <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
         <div className="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
           <h3 className="font-bold text-sm text-slate-800">Bitácora Detallada de Tickets Emitidos</h3>
-          <span className="text-xs text-slate-500">{filteredSales.length} transacciones en período</span>
+          <span className="text-xs text-slate-500">Haz clic en un ticket para ver detalles ({filteredSales.length})</span>
         </div>
 
         <div className="overflow-x-auto">
@@ -619,7 +757,11 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ sales, products }) => 
                 </tr>
               ) : (
                 filteredSales.map((s) => (
-                  <tr key={s.id} className="hover:bg-slate-50">
+                  <tr
+                    key={s.id}
+                    onClick={() => setSelectedSaleDetail(s)}
+                    className="hover:bg-slate-50 cursor-pointer transition-colors"
+                  >
                     <td className="py-2.5 px-4 font-mono font-bold text-slate-900">{s.folio}</td>
                     <td className="py-2.5 px-3 font-mono text-slate-500 whitespace-nowrap">
                       {new Date(s.created_at).toLocaleString('es-MX', {
@@ -655,6 +797,70 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ sales, products }) => 
           </table>
         </div>
       </div>
+
+      {/* Modal de Detalle de Ticket */}
+      {selectedSaleDetail && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl border border-slate-200">
+            <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="font-bold text-base text-slate-900">Ticket #{selectedSaleDetail.folio}</h3>
+                <p className="text-xs text-slate-400">
+                  {new Date(selectedSaleDetail.created_at).toLocaleString('es-MX')} • Cajero: <strong className="text-slate-600">{selectedSaleDetail.cashier_name}</strong>
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedSaleDetail(null)}
+                className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3 max-h-60 overflow-y-auto mb-4 divide-y divide-slate-100">
+              {selectedSaleDetail.items.map((item, idx) => (
+                <div key={idx} className="pt-2 first:pt-0 flex justify-between text-xs">
+                  <div>
+                    <p className="font-semibold text-slate-800">{item.product_name}</p>
+                    <span className="text-[10px] text-slate-400">Cant: {item.quantity} x ${item.unit_price?.toFixed(2)}</span>
+                  </div>
+                  <span className="font-mono font-bold text-slate-900">${item.total.toFixed(2)}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="bg-slate-50 p-3 rounded-xl space-y-1.5 text-xs font-mono">
+              <div className="flex justify-between text-slate-600">
+                <span>Subtotal:</span>
+                <span>${selectedSaleDetail.subtotal.toFixed(2)}</span>
+              </div>
+              {selectedSaleDetail.discount > 0 && (
+                <div className="flex justify-between text-rose-600">
+                  <span>Descuento:</span>
+                  <span>-${selectedSaleDetail.discount.toFixed(2)}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-slate-600">
+                <span>IVA:</span>
+                <span>${selectedSaleDetail.tax.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-slate-900 font-bold border-t border-slate-200 pt-1.5 text-sm">
+                <span>Total:</span>
+                <span>${selectedSaleDetail.total.toFixed(2)}</span>
+              </div>
+            </div>
+
+            <div className="mt-5 flex justify-end">
+              <button
+                onClick={() => setSelectedSaleDetail(null)}
+                className="px-4 py-2 bg-slate-900 text-white text-xs font-semibold rounded-xl hover:bg-slate-800 transition-colors"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

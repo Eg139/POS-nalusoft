@@ -28,7 +28,8 @@ export const StockAdjustModal: React.FC<StockAdjustModalProps> = ({
     delta = parsedAmount - product.stock;
   }
 
-  const resultingStock = Math.max(0, Number((product.stock + (operationType === 'ajuste' ? delta : delta)).toFixed(3)));
+  // Simplificado para evitar redundancia
+  const resultingStock = Math.max(0, Number((product.stock + delta).toFixed(3)));
 
   const handleTypeChange = (type: StockMovementType) => {
     setOperationType(type);
@@ -42,7 +43,8 @@ export const StockAdjustModal: React.FC<StockAdjustModalProps> = ({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // ✅ Actualizado a SubmitEvent para evitar advertencias de deprecación
+  const handleSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (operationType === 'ajuste') {
       const adjustmentDelta = parseFloat(amount) - product.stock;

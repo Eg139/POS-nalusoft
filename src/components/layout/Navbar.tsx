@@ -1,7 +1,6 @@
 import React from 'react';
-import { ShoppingCart, Package, AlertTriangle, BarChart3, Vault, Database, ChefHat } from 'lucide-react';
+import { ShoppingCart, Package, AlertTriangle, BarChart3, Vault, Database, ChefHat, IceCream, Store } from 'lucide-react';
 
-// 1. Añadimos 'recipes' a las vistas posibles de la aplicación
 export type AppView = 'pos' | 'inventory' | 'alerts' | 'reports' | 'production';
 
 interface NavbarProps {
@@ -66,7 +65,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           <span>Inventario</span>
         </button>
 
-        {/* --- NUEVO BOTÓN DE RECETAS / ESCANDALLO --- */}
         <button
           onClick={() => onSelectView('production')}
           className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
@@ -121,7 +119,17 @@ export const Navbar: React.FC<NavbarProps> = ({
                 : 'bg-emerald-950/40 text-emerald-300 border-emerald-700/60 hover:bg-emerald-900/60'
             }`}
           >
-            <span>{isIceCreamMode ? '🍨 Heladería' : '🛒 Supermercado'}</span>
+            {isIceCreamMode ? (
+              <>
+                <IceCream className="w-4 h-4 text-pink-400" />
+                <span>Heladería</span>
+              </>
+            ) : (
+              <>
+                <Store className="w-4 h-4 text-emerald-400" />
+                <span>Supermercado</span>
+              </>
+            )}
           </button>
         )}
 

@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Product, StockMovement } from '../../types';
 import { StorageService } from '../../services/storageService';
 import {
   AlertTriangle,
   Clock,
   CheckCircle2,
-  TrendingDown,
   ArrowUpRight,
   PackageX,
   History,
@@ -29,28 +28,35 @@ export const AlertsView: React.FC<AlertsViewProps> = ({
   const [activeTab, setActiveTab] = useState<'stock' | 'expiry' | 'kardex'>('stock');
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  // Fecha de referencia normalizada memorizada
+  const today = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
 
-  // Low & Out of stock products
-  const lowStockProducts = products
-    .filter((p) => p.stock <= p.min_stock_alert)
-    .sort((a, b) => a.stock - b.stock);
+  // Low & Out of stock products optimizados
+  const lowStockProducts = useMemo(() => {
+    return products
+      .filter((p) => p.stock <= p.min_stock_alert)
+      .sort((a, b) => a.stock - b.stock);
+  }, [products]);
 
-  // Expiring perishables
-  const expiringProducts = products
-    .filter((p) => {
-      if (!p.expiry_date) return false;
-      const expDate = new Date(p.expiry_date);
-      const diffTime = expDate.getTime() - today.getTime();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      return diffDays <= 20; // 20 days or expired
-    })
-    .sort((a, b) => new Date(a.expiry_date!).getTime() - new Date(b.expiry_date!).getTime());
+  // Expiring perishables optimizados
+  const expiringProducts = useMemo(() => {
+    return products
+      .filter((p) => {
+        if (!p.expiry_date) return false;
+        const expDate = new Date(p.expiry_date);
+        const diffTime = expDate.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays <= 20; // 20 days or expired
+      })
+      .sort((a, b) => new Date(a.expiry_date!).getTime() - new Date(b.expiry_date!).getTime());
+  }, [products, today]);
 
   // Quick 1-click replenish
   const handleQuickRestock = (product: Product) => {
-    // Recommend quantity to reach 2x min_stock
     const suggestedRestock = Math.max(10, Math.ceil(product.min_stock_alert * 2 - product.stock));
     StorageService.adjustStock(
       product.id,
@@ -65,7 +71,11 @@ export const AlertsView: React.FC<AlertsViewProps> = ({
 
   // Quick mark as waste for expired
   const handleMarkWaste = (product: Product) => {
-    if (product.stock <= 0) return;
+    if (product.stock <= 0) {
+      setSuccessToast(`El producto ${product.name} ya se encuentra en stock 0.`);
+      setTimeout(() => setSuccessToast(null), 3000);
+      return;
+    }
     StorageService.adjustStock(
       product.id,
       -product.stock,
@@ -161,7 +171,6 @@ export const AlertsView: React.FC<AlertsViewProps> = ({
                     }`}
                   >
                     <div>
-                      {/* Urgency Badge */}
                       <div className="flex items-center justify-between text-xs mb-2">
                         {isOutOfStock ? (
                           <span className="font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded flex items-center gap-1">
