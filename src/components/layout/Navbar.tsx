@@ -45,19 +45,19 @@ export const Navbar: React.FC<NavbarProps> = ({
           onClick={() => onSelectView('pos')}
           className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
             currentView === 'pos'
-              ? 'bg-slate-800 text-emerald-400'
+             ? 'bg-slate-800 text-emerald-400'
               : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
           }`}
         >
           <ShoppingCart className="w-4 h-4" />
-          <span>Punto de Venta</span>
+          <span>Venta</span>
         </button>
 
         <button
           onClick={() => onSelectView('inventory')}
           className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
             currentView === 'inventory'
-              ? 'bg-slate-800 text-emerald-400'
+             ? 'bg-slate-800 text-emerald-400'
               : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
           }`}
         >
@@ -65,23 +65,25 @@ export const Navbar: React.FC<NavbarProps> = ({
           <span>Inventario</span>
         </button>
 
-        <button
-          onClick={() => onSelectView('production')}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
-            currentView === 'production'
-              ? 'bg-slate-800 text-emerald-400'
-              : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-          }`}
-        >
-          <ChefHat className="w-4 h-4 text-emerald-400" />
-          <span>Producción</span>
-        </button>
+        {isIceCreamMode && (
+          <button
+            onClick={() => onSelectView('production')}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
+              currentView === 'production'
+               ? 'bg-slate-800 text-emerald-400'
+                : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+            }`}
+          >
+            <ChefHat className="w-4 h-4 text-emerald-400" />
+            <span>Producción</span>
+          </button>
+        )}
 
         <button
           onClick={() => onSelectView('alerts')}
           className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors relative ${
             currentView === 'alerts'
-              ? 'bg-slate-800 text-amber-400'
+             ? 'bg-slate-800 text-amber-400'
               : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
           }`}
         >
@@ -98,7 +100,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           onClick={() => onSelectView('reports')}
           className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
             currentView === 'reports'
-              ? 'bg-slate-800 text-emerald-400'
+             ? 'bg-slate-800 text-emerald-400'
               : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
           }`}
         >
@@ -112,14 +114,14 @@ export const Navbar: React.FC<NavbarProps> = ({
         {onToggleStoreMode && (
           <button
             onClick={onToggleStoreMode}
-            title={isIceCreamMode ? 'Cambiar a modo Supermercado' : 'Cambiar a modo Heladería'}
+            title={isIceCreamMode? 'Cambiar a modo Kiosco' : 'Cambiar a modo Heladería'}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap border ${
               isIceCreamMode
-                ? 'bg-pink-950/40 text-pink-300 border-pink-700/60 hover:bg-pink-900/60'
+               ? 'bg-pink-950/40 text-pink-300 border-pink-700/60 hover:bg-pink-900/60'
                 : 'bg-emerald-950/40 text-emerald-300 border-emerald-700/60 hover:bg-emerald-900/60'
             }`}
           >
-            {isIceCreamMode ? (
+            {isIceCreamMode? (
               <>
                 <IceCream className="w-4 h-4 text-pink-400" />
                 <span>Heladería</span>
@@ -127,7 +129,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             ) : (
               <>
                 <Store className="w-4 h-4 text-emerald-400" />
-                <span>Supermercado</span>
+                <span>Kiosco</span>
               </>
             )}
           </button>

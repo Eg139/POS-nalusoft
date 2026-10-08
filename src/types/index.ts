@@ -1,6 +1,38 @@
-export type ProductCategory = string;
+export const HELADERIA_CATEGORIES = [
+  'Sabores de Helado',
+  'Presentaciones Helado',
+  'Insumos y Utilidades',
+  'Paletas Artesanales',
+  'Toppings y Adicionales',
+  'Malteadas y Bebidas',
+] as const;
+
+export const KIOSKO_CATEGORIES = [
+  'Golosinas',
+  'Chocolates',
+  'Alfajores',
+  'Galletitas',
+  'Snacks',
+  'Bebidas',
+  'Bebidas con Alcohol',
+  'Cigarrillos y Tabaco',
+  'Lacteos',
+  'Panaderia',
+  'Helados Envasados',
+  'Otros',
+] as const;
+
+export const ALL_CATEGORIES = [
+...HELADERIA_CATEGORIES,
+...KIOSKO_CATEGORIES,
+] as const;
+
+export type HeladeriaCategory = typeof HELADERIA_CATEGORIES[number];
+export type KioskoCategory = typeof KIOSKO_CATEGORIES[number];
+export type ProductCategory = typeof ALL_CATEGORIES[number] | string;
 
 export type ProductUnit = 'pz' | 'kg' | 'lt' | 'paq' | 'gr' | 'ml';
+export type StoreMode = 'heladeria' | 'kiosko';
 
 export interface IceCreamSupplyRequirement {
   supply_product_id?: string;
@@ -20,17 +52,13 @@ export interface SelectedSupplyItem {
   quantity: number;
 }
 
-/**
- * Representa un ítem de receta preparado para relacionarse perfectamente 
- * con Supabase (Foreign Keys: product_id -> ingredient_id).
- */
 export interface RecipeItem {
-  id?: string;                // ID único del registro en la tabla puente (UUID/Serial)
-  product_id?: string;        // ID del producto padre (el plato o helado elaborado)
-  ingredient_id: string;      // ID del producto hijo (la materia prima o insumo)
-  ingredient_name?: string;   // Campo útil para joins rápidos en la UI
-  quantity_needed: number;    // Cantidad requerida para la receta / lote
-  unit: ProductUnit;          // Unidad de medida específica para este ingrediente
+  id?: string;
+  product_id?: string;
+  ingredient_id: string;
+  ingredient_name?: string;
+  quantity_needed: number;
+  unit: ProductUnit;
 }
 
 export interface Product {
@@ -38,43 +66,41 @@ export interface Product {
   barcode: string;
   name: string;
   category: ProductCategory;
-  cost_price: number;         // Precio de costo / compra o calculado por receta
-  sale_price: number;         // Precio de venta al público
-  stock: number;              // Stock actual
-  min_stock_alert: number;    // Alerta de stock mínimo
+  cost_price: number;
+  sale_price: number;
+  stock: number;
+  min_stock_alert: number;
   unit: ProductUnit;
-  tax_rate: number;           // e.g. 0.16 para IVA 16% o 0 para exento
-  expiry_date?: string;       // YYYY-MM-DD Fecha de vencimiento
-  manufacturing_date?: string;// YYYY-MM-DD Fecha de fabricación / elaboración
-  batch_number?: string;      // Número de lote / bacha
+  tax_rate: number;
+  expiry_date?: string;
+  manufacturing_date?: string;
+  batch_number?: string;
   created_at: string;
   updated_at: string;
 
-  // Heladería Artesanal: Recetas, Sabores e Insumos
-  is_icecream_presentation?: boolean; // Cono, vasito o pote que requiere elegir sabores
-  max_flavors?: number;               // Número máximo de sabores permitidos (ej. 1, 2, 3, 4)
-  total_grams?: number;               // Gramaje total de helado (ej. 80, 160, 250, 500, 1000)
-  default_supplies?: IceCreamSupplyRequirement[]; // Insumos que consume (cucurucho, cucharitas, etc.)
-  is_raw_flavor?: boolean;            // Sabor a granel en bacha (ej. Dulce de Leche, Pistacho)
-  is_supply?: boolean;                // Insumo desechable (cucharita, servilleta, etc.)
+  is_icecream_presentation?: boolean;
+  max_flavors?: number;
+  total_grams?: number;
+  default_supplies?: IceCreamSupplyRequirement[];
+  is_raw_flavor?: boolean;
+  is_supply?: boolean;
 
-  // --- RECETAS Y COSTOS AUTOMÁTICOS ---
-  has_recipe?: boolean;               // True si el costo se calcula mediante receta de producción
-  recipe?: RecipeItem[];              // Lista de ingredientes normalizados para Supabase
+  has_recipe?: boolean;
+  recipe?: RecipeItem[];
 }
 
 export interface CartItem {
   product: Product;
   quantity: number;
-  unit_price: number;         // Puede ser modificado por descuento especial
-  discount_percent: number;   // 0 - 100
+  unit_price: number;
+  discount_percent: number;
   subtotal: number;
   tax: number;
   total: number;
   profit: number;
-  weight_measured?: number;   // Para frutas/verduras pesadas
-  selected_flavors?: SelectedFlavorItem[];  // Sabores seleccionados con su gramaje
-  selected_supplies?: SelectedSupplyItem[]; // Utilidades e insumos a descontar
+  weight_measured?: number;
+  selected_flavors?: SelectedFlavorItem[];
+  selected_supplies?: SelectedSupplyItem[];
 }
 
 export type PaymentMethod = 'efectivo' | 'tarjeta' | 'transferencia' | 'mixto';
@@ -109,7 +135,7 @@ export interface Sale {
   total: number;
   cost_total: number;
   net_profit: number;
-  profit_margin: number;      // % (net_profit / total) * 100
+  profit_margin: number;
   payment_method: PaymentMethod;
   amount_paid: number;
   change: number;
@@ -125,7 +151,7 @@ export interface StockMovement {
   product_name: string;
   barcode: string;
   type: StockMovementType;
-  quantity: number;           // Positivo para entradas, negativo para salidas
+  quantity: number;
   previous_stock: number;
   new_stock: number;
   reason: string;
@@ -150,12 +176,18 @@ export interface CashSession {
 
 export interface SupermarketSettings {
   store_name: string;
-  tax_id: string;             // RFC / RUT / CIF
+  tax_id: string;
   address: string;
   phone: string;
   ticket_footer: string;
-  default_tax_rate: number;   // e.g. 0.16
-  currency: string;           // '$'
+  default_tax_rate: number;
+  currency: string;
   beep_enabled: boolean;
   cashier_active: string;
+  store_mode: StoreMode; // <-- para no mezclar categorías
 }
+
+// Helper para no mezclar en la UI
+export const getCategoriesByMode = (mode: StoreMode) => {
+  return mode === 'heladeria'? HELADERIA_CATEGORIES : KIOSKO_CATEGORIES;
+};

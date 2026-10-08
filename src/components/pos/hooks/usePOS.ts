@@ -16,7 +16,6 @@ export const usePOS = (
   const [soundEnabled, setSoundEnabled] = useState<boolean>(settings.beep_enabled);
   const [scanMessage, setScanMessage] = useState<{ text: string; error?: boolean } | null>(null);
 
-  // Modales
   const [isPaymentOpen, setIsPaymentOpen] = useState<boolean>(false);
   const [weightedProduct, setWeightedProduct] = useState<Product | null>(null);
   const [flavorCustomizingProduct, setFlavorCustomizingProduct] = useState<Product | null>(null);
@@ -24,26 +23,14 @@ export const usePOS = (
 
   const barcodeInputRef = useRef<HTMLInputElement>(null);
 
-  // Integración de sub-hooks
   const {
-    cart,
-    setCart,
-    addProductToCart,
-    updateQuantity,
-    removeItem,
-    applyLineDiscount,
-    addCustomFlavorItem,
-    totals,
+    cart, setCart, addProductToCart, updateQuantity, removeItem,
+    applyLineDiscount, addCustomFlavorItem, totals,
   } = useCart(soundEnabled, setScanMessage, setWeightedProduct, setFlavorCustomizingProduct);
 
-  const {
-    heldCarts,
-    setHeldCarts,
-    holdCurrentCart,
-    retrieveHeldCart,
-  } = useHeldCarts(cart, setCart, setScanMessage);
+  const { heldCarts, setHeldCarts, holdCurrentCart, retrieveHeldCart } =
+    useHeldCarts(cart, setCart, setScanMessage);
 
-  // Refs para shortcuts de teclado
   const cartRef = useRef(cart);
   cartRef.current = cart;
   const isPaymentOpenRef = useRef(isPaymentOpen);
@@ -56,12 +43,23 @@ export const usePOS = (
   searchQueryRef.current = searchQuery;
 
   const categories: string[] = useMemo(() => {
+    let baseForCats = products;
+    if (settings.store_mode === 'heladeria') {
+      baseForCats = products.filter((p) => isIceCreamProduct(p));
+    } else {
+      // Kiosko: ocultamos sabores e insumos que no se venden solos (precio 0)
+      baseForCats = products.filter((p) => {
+        const isRaw = (p as any).is_raw_flavor;
+        const isSupply = (p as any).is_supply;
+        if (isRaw || isSupply) return false;
+        if (p.sale_price === 0) return false;
+        return true;
+      });
+    }
     const set = new Set<string>();
-    products.forEach((p) => {
-      if (p.category) set.add(p.category);
-    });
-    return ['Todos', ...Array.from(set)];
-  }, [products]);
+    baseForCats.forEach((p) => { if (p.category) set.add(p.category); });
+    return ['Todos',...Array.from(set)];
+  }, [products, settings.store_mode]);
 
   useEffect(() => {
     barcodeInputRef.current?.focus();
@@ -69,7 +67,7 @@ export const usePOS = (
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'F12' && cartRef.current.length > 0 && !isPaymentOpenRef.current && !completedSaleRef.current) {
+      if (e.key === 'F12' && cartRef.current.length > 0 &&!isPaymentOpenRef.current &&!completedSaleRef.current) {
         e.preventDefault();
         setIsPaymentOpen(true);
       }
@@ -77,7 +75,7 @@ export const usePOS = (
         e.preventDefault();
         barcodeInputRef.current?.focus();
       }
-      if (e.key === 'Escape' && !isPaymentOpenRef.current && !completedSaleRef.current && !weightedProductRef.current) {
+      if (e.key === 'Escape' &&!isPaymentOpenRef.current &&!completedSaleRef.current &&!weightedProductRef.current) {
         if (searchQueryRef.current) setSearchQuery('');
       }
     };
@@ -86,55 +84,66 @@ export const usePOS = (
   }, []);
 
   const filteredProducts = useMemo(() => {
-    return products.filter((p) => {
+    let base = products;
+
+    if (settings.store_mode === 'heladeria') {
+      // SOLO PRESENTACIONES EN EL POS
+      base = base.filter((p) => isIceCreamProduct(p));
+    } else {
+      // KIOSKO: TODO menos bachas e insumos
+      base = base.filter((p) => {
+        if ((p as any).is_raw_flavor) return false;
+        if ((p as any).is_supply) return false;
+        if (p.category === 'Sabores de Helado') return false;
+        if (p.category === 'Insumos y Utilidades') return false;
+        if (p.sale_price === 0) return false;
+        return true;
+      });
+    }
+
+    return base.filter((p) => {
       const matchCat = selectedCategory === 'Todos' || p.category === selectedCategory;
       const q = searchQuery.toLowerCase().trim();
       const matchQuery =
-        !q ||
+       !q ||
         p.name.toLowerCase().includes(q) ||
         p.barcode.includes(q) ||
         p.category.toLowerCase().includes(q);
       return matchCat && matchQuery;
     });
-  }, [products, selectedCategory, searchQuery]);
+  }, [products, selectedCategory, searchQuery, settings.store_mode]);
 
-const handleBarcodeSubmit = (e: React.FormEvent) => {
-  e.preventDefault();
-  const raw = barcodeInput.trim();
-  if (!raw) return;
-
-  // Limpiamos el input de inmediato para evitar que un doble "Enter" del lector dispare el evento dos veces
-  setBarcodeInput('');
-
-  let multiplier = 1;
-  let codeToSearch = raw;
-
-  if (raw.includes('*')) {
-    const parts = raw.split('*');
-    const parsedMult = parseFloat(parts[0]);
-    if (!isNaN(parsedMult) && parsedMult > 0) {
-      multiplier = parsedMult;
-      codeToSearch = parts[1].trim();
+  const handleBarcodeSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const raw = barcodeInput.trim();
+    if (!raw) return;
+    setBarcodeInput('');
+    let multiplier = 1;
+    let codeToSearch = raw;
+    if (raw.includes('*')) {
+      const parts = raw.split('*');
+      const parsedMult = parseFloat(parts[0]);
+      if (!isNaN(parsedMult) && parsedMult > 0) {
+        multiplier = parsedMult;
+        codeToSearch = parts[1].trim();
+      }
     }
-  }
-
-  const matched = products.find(
-    (p) => p.barcode === codeToSearch || p.barcode.toLowerCase() === codeToSearch.toLowerCase()
-  );
-
-  if (matched) {
-    addProductToCart(matched, multiplier, matched.unit === 'kg' && multiplier !== 1);
-  } else {
-    const matchedByName = products.find((p) => p.name.toLowerCase() === codeToSearch.toLowerCase());
-    if (matchedByName) {
-      addProductToCart(matchedByName, multiplier);
+    const matched = products.find(
+      (p) => p.barcode === codeToSearch || p.barcode.toLowerCase() === codeToSearch.toLowerCase()
+    );
+    if (matched) {
+      addProductToCart(matched, multiplier, matched.unit === 'kg' && multiplier!== 1);
     } else {
-      setScanMessage({ text: `Código "${raw}" no encontrado en catálogo`, error: true });
-      playBeep('error', soundEnabled);
-      setTimeout(() => setScanMessage(null), 3000);
+      const matchedByName = products.find((p) => p.name.toLowerCase() === codeToSearch.toLowerCase());
+      if (matchedByName) {
+        addProductToCart(matchedByName, multiplier);
+      } else {
+        setScanMessage({ text: `Código "${raw}" no encontrado en catálogo`, error: true });
+        playBeep('error', soundEnabled);
+        setTimeout(() => setScanMessage(null), 3000);
+      }
     }
-  }
-};
+  };
 
   const handleConfirmIceCreamFlavors = (
     flavors: SelectedFlavorItem[],
@@ -194,41 +203,13 @@ const handleBarcodeSubmit = (e: React.FormEvent) => {
   };
 
   return {
-    cart,
-    setCart,
-    heldCarts,
-    setHeldCarts,
-    barcodeInput,
-    setBarcodeInput,
-    searchQuery,
-    setSearchQuery,
-    selectedCategory,
-    setSelectedCategory,
-    soundEnabled,
-    setSoundEnabled,
-    scanMessage,
-    isPaymentOpen,
-    setIsPaymentOpen,
-    weightedProduct,
-    setWeightedProduct,
-    flavorCustomizingProduct,
-    setFlavorCustomizingProduct,
-    completedSale,
-    setCompletedSale,
-    barcodeInputRef,
-    categories,
-    filteredProducts,
-    addProductToCart,
-    handleBarcodeSubmit,
-    totals,
-    handleConfirmIceCreamFlavors,
-    handlePaymentSuccess,
-    updateQuantity,
-    removeItem,
-    applyLineDiscount,
-    holdCurrentCart,
-    retrieveHeldCart,
-    isIceCreamProduct,
-    normalizeIceCreamProduct,
+    cart, setCart, heldCarts, setHeldCarts, barcodeInput, setBarcodeInput,
+    searchQuery, setSearchQuery, selectedCategory, setSelectedCategory,
+    soundEnabled, setSoundEnabled, scanMessage, isPaymentOpen, setIsPaymentOpen,
+    weightedProduct, setWeightedProduct, flavorCustomizingProduct, setFlavorCustomizingProduct,
+    completedSale, setCompletedSale, barcodeInputRef, categories, filteredProducts,
+    addProductToCart, handleBarcodeSubmit, totals, handleConfirmIceCreamFlavors,
+    handlePaymentSuccess, updateQuantity, removeItem, applyLineDiscount,
+    holdCurrentCart, retrieveHeldCart, isIceCreamProduct, normalizeIceCreamProduct,
   };
 };
