@@ -19,7 +19,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
   const [barcode, setBarcode] = useState(product?.barcode || '');
   const [name, setName] = useState(product?.name || '');
-  const [category, setCategory] = useState<string>(product?.category || (categories.length > 0 ? categories[0] : 'Helados'));
+  const [category, setCategory] = useState<string>(product?.category || (categories.length > 0 ? categories[0] : 'General'));
   const [costPrice, setCostPrice] = useState<string>(product ? product.cost_price.toString() : '');
   const [salePrice, setSalePrice] = useState<string>(product ? product.sale_price.toString() : '');
   const [stock, setStock] = useState<string>(product ? product.stock.toString() : '10');
@@ -39,7 +39,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const parsedCost = parseFloat(costPrice) || 0;
   const parsedSale = parseFloat(salePrice) || 0;
 
-  // Real-time Margin & Markup calculation
+  // Cálculo en tiempo real de márgenes y markups
   const profitPerUnit = Math.max(0, parsedSale - parsedCost);
   const profitMarginPercent = parsedSale > 0 ? ((profitPerUnit / parsedSale) * 100).toFixed(1) : '0';
   const markupPercent = parsedCost > 0 ? (((parsedSale - parsedCost) / parsedCost) * 100).toFixed(1) : '0';
@@ -49,8 +49,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
     setBarcode(random12);
   };
 
-  // ✅ Corregido con SubmitEvent para evitar el aviso de deprecación
-  const handleSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setErrorMsg(null);
 
@@ -63,14 +62,13 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       return;
     }
 
-    // Si no se ingresa código de barras, generamos uno interno automático para comercios de barrio
     const finalBarcode = barcode.trim() || `INT-${Math.floor(1000 + Math.random() * 9000)}`;
 
     const newProd: Product = {
       id: product?.id || `prod-${Date.now()}`,
       barcode: finalBarcode,
       name: name.trim(),
-      category,
+      category: category.trim() || 'General',
       cost_price: parsedCost,
       sale_price: parsedSale,
       stock: parseFloat(stock) || 0,
@@ -101,49 +99,51 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
     'Abarrotes',
     'Lácteos y Huevos',
     'Frutas y Verduras',
-    'Carnicería y Embutidos',
-    'Panadería y Tortillería',
     'Bebidas y Licores',
     'Snacks y Dulces',
     'Limpieza y Hogar',
-    'Cuidado Personal',
+    'General',
   ];
 
   const allSuggestedCategories = Array.from(new Set([...categories, ...defaultCategories]));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/65 backdrop-blur-xs p-4 overflow-y-auto">
-      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full border border-slate-200 overflow-hidden flex flex-col my-auto">
+      {/* 🚀 Modal más ancho (max-w-3xl) y con altura máxima controlada */}
+      <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full border border-slate-200 overflow-hidden flex flex-col my-auto max-h-[92vh]">
+        
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 bg-slate-900 text-white">
+        <div className="flex items-center justify-between px-6 py-4 bg-slate-900 text-white shrink-0">
           <h2 className="text-base font-bold">
             {isEditing ? 'Editar Producto del Catálogo' : 'Dar de Alta Nuevo Producto'}
           </h2>
           <button
+            type="button"
             onClick={onClose}
-            className="text-slate-400 hover:text-white p-1 rounded-md transition-colors"
+            className="text-slate-400 hover:text-white p-1 rounded-lg transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {errorMsg && (
-          <div className="mx-6 mt-4 p-3 bg-rose-50 border border-rose-200 rounded-lg text-rose-800 text-xs flex items-center gap-2">
+          <div className="mx-6 mt-4 p-3 bg-rose-50 border border-rose-200 rounded-lg text-rose-800 text-xs flex items-center gap-2 shrink-0">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{errorMsg}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto flex-1">
+          
           {/* Row 1: Barcode & Name */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+            <div className="md:col-span-5">
               <div className="flex justify-between items-center mb-1">
                 <label className="text-xs font-semibold text-slate-700">Código de Barras (Opcional)</label>
                 <button
                   type="button"
                   onClick={generateRandomBarcode}
-                  className="text-[11px] text-emerald-600 hover:text-emerald-700 flex items-center gap-0.5"
+                  className="text-[11px] text-emerald-600 hover:text-emerald-700 flex items-center gap-1 font-semibold transition-colors"
                 >
                   <Sparkles className="w-3 h-3" />
                   <span>Generar</span>
@@ -154,11 +154,11 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                 value={barcode}
                 onChange={(e) => setBarcode(e.target.value)}
                 placeholder="Automático si se deja vacío"
-                className="w-full px-3 py-2 text-sm font-mono bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 text-sm font-mono bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
               />
             </div>
 
-            <div className="md:col-span-2">
+            <div className="md:col-span-7">
               <label className="block text-xs font-semibold text-slate-700 mb-1">
                 Nombre del Producto *
               </label>
@@ -167,32 +167,30 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Ej. Helado de Chocolate 1kg"
-                className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                placeholder="Ej. Helado de Chocolate 1kg o Refresco 600ml"
+                className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 font-medium text-slate-900"
               />
             </div>
           </div>
 
-          {/* Row 2: Category & Unit */}
+          {/* Row 2: Category (Select / Dropdown real) & Unit */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Departamento / Categoría
+                Departamento / Categoría *
               </label>
-              <input
-                type="text"
-                list="category-suggestions"
-                required
+              {/* 🚀 Selector real (<select>) estilizado para garantizar que se comporte como un menú desplegable limpio */}
+              <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                placeholder="Ej. Helados por Kilo, Conos..."
-                className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
-              />
-              <datalist id="category-suggestions">
-                {allSuggestedCategories.map((c) => (
-                  <option key={c} value={c} />
+                className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 font-medium text-slate-800"
+              >
+                {allSuggestedCategories.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
                 ))}
-              </datalist>
+              </select>
             </div>
 
             <div>
@@ -202,7 +200,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               <select
                 value={unit}
                 onChange={(e) => setUnit(e.target.value as ProductUnit)}
-                className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 font-medium text-slate-800"
               >
                 <option value="pz">Pieza (pz)</option>
                 <option value="kg">Kilogramo (kg) - Pesable</option>
@@ -214,7 +212,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
           </div>
 
           {/* Row 3: Pricing & Margin Simulator */}
-          <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-600 block">
               Precios y Rendimiento / Margen
             </span>
@@ -228,11 +226,10 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                   type="number"
                   step="0.01"
                   min="0"
-                  required
                   value={costPrice}
                   onChange={(e) => setCostPrice(e.target.value)}
                   placeholder="0.00"
-                  className="w-full px-3 py-2 text-sm font-mono tabular-nums bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                  className="w-full px-3 py-2 text-sm font-mono tabular-nums bg-white border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
 
@@ -248,7 +245,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                   value={salePrice}
                   onChange={(e) => setSalePrice(e.target.value)}
                   placeholder="0.00"
-                  className="w-full px-3 py-2 text-sm font-mono tabular-nums font-bold bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                  className="w-full px-3 py-2 text-sm font-mono tabular-nums font-bold bg-white border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-emerald-500 text-slate-900"
                 />
               </div>
 
@@ -259,7 +256,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                 <select
                   value={taxRate}
                   onChange={(e) => setTaxRate(e.target.value)}
-                  className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                  className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
                 >
                   <option value="0">0% (Exento / Alimentos)</option>
                   <option value="16">16% (General)</option>
@@ -304,7 +301,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                 required
                 value={stock}
                 onChange={(e) => setStock(e.target.value)}
-                className="w-full px-3 py-2 text-sm font-mono tabular-nums bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 text-sm font-mono tabular-nums bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
               />
             </div>
 
@@ -315,27 +312,27 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               <input
                 type="number"
                 step="any"
-                min="1"
+                min="0"
                 required
                 value={minStockAlert}
                 onChange={(e) => setMinStockAlert(e.target.value)}
-                className="w-full px-3 py-2 text-sm font-mono tabular-nums bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 text-sm font-mono tabular-nums bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
               />
             </div>
           </div>
 
           {/* Modal Actions */}
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200">
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 shrink-0">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-medium text-slate-600 hover:text-slate-800 transition-colors"
+              className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="flex items-center gap-1.5 px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors shadow-xs"
+              className="flex items-center gap-1.5 px-6 py-2.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all shadow-md active:scale-95"
             >
               <Check className="w-4 h-4" />
               <span>{isEditing ? 'Guardar Cambios' : 'Registrar Producto'}</span>
