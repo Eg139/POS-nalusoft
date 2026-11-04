@@ -65,7 +65,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           <span>Inventario</span>
         </button>
 
-        {isIceCreamMode && (
           <button
             onClick={() => onSelectView('production')}
             className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
@@ -77,7 +76,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             <ChefHat className="w-4 h-4 text-emerald-400" />
             <span>Producción</span>
           </button>
-        )}
 
         <button
           onClick={() => onSelectView('alerts')}

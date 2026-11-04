@@ -275,31 +275,6 @@ getProducts(): Product[] {
     localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(newSettings));
   },
 
-  loadEmptyCatalog(): void {
-    localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify([]));
-    localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify([]));
-    localStorage.setItem(STORAGE_KEYS.MOVEMENTS, JSON.stringify([]));
-    const emptySession: CashSession = { id: `ses-${Date.now()}`, cashier_name: 'Caja 01', opened_at: new Date().toISOString(), initial_cash: 0, cash_sales: 0, card_sales: 0, transfer_sales: 0, cash_withdrawals: 0, expected_cash: 0, status: 'abierta' as const };
-    localStorage.setItem(STORAGE_KEYS.CASH_SESSION, JSON.stringify(emptySession));
-  },
-
-  loadSupermarketDemo(): void {
-    localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(INITIAL_PRODUCTS));
-    localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(INITIAL_SALES));
-    localStorage.setItem(STORAGE_KEYS.MOVEMENTS, JSON.stringify(INITIAL_MOVEMENTS));
-    localStorage.setItem(STORAGE_KEYS.CASH_SESSION, JSON.stringify(INITIAL_CASH_SESSION));
-    const newSettings = {...INITIAL_SETTINGS, store_mode: 'kiosko' as StoreMode, store_name: 'Kiosco - Dock Sud' };
-    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(newSettings));
-  },
-
-  loadIceCreamDemo(): void {
-    localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(ICE_CREAM_PRODUCTS));
-    localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(ICE_CREAM_SALES));
-    localStorage.setItem(STORAGE_KEYS.MOVEMENTS, JSON.stringify([]));
-    localStorage.setItem(STORAGE_KEYS.CASH_SESSION, JSON.stringify(ICE_CREAM_CASH_SESSION));
-    const newSettings = {...ICE_CREAM_SETTINGS, store_mode: 'heladeria' as StoreMode, store_name: 'Heladería Artesanal - Dock Sud' };
-    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(newSettings));
-  },
 
   exportDatabaseJSON(): string {
     const backup = { exportDate: new Date().toISOString(), version: '1.0', settings: this.getSettings(), products: this.getProducts(), sales: this.getSales(), stockMovements: this.getStockMovements(), cashSession: this.getCashSession() };
@@ -381,5 +356,94 @@ getProducts(): Product[] {
       });
     }
     localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
-  }
+  },
+clearAllData(storeName?: string): void {
+    localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify([]));
+    localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify([]));
+    localStorage.setItem(STORAGE_KEYS.MOVEMENTS, JSON.stringify([]));
+    
+    const settings = this.getSettings();
+    // Mantenemos el nombre comercial actual si no se provee uno nuevo, y conservamos el store_mode intacto
+    const updatedSettings = { 
+      ...settings, 
+      store_name: storeName || settings.store_name 
+    };
+    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(updatedSettings));
+
+    const emptySession: CashSession = {
+      id: `ses-${Date.now()}`,
+      cashier_name: settings.cashier_active || 'Caja 01',
+      opened_at: new Date().toISOString(),
+      initial_cash: 0,
+      cash_sales: 0,
+      card_sales: 0,
+      transfer_sales: 0,
+      cash_withdrawals: 0,
+      expected_cash: 0,
+      status: 'abierta' as const
+    };
+    localStorage.setItem(STORAGE_KEYS.CASH_SESSION, JSON.stringify(emptySession));
+  },
+
+  loadEmptyCatalog(storeName?: string): void {
+    localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify([]));
+    localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify([]));
+    localStorage.setItem(STORAGE_KEYS.MOVEMENTS, JSON.stringify([]));
+    
+    const emptySession: CashSession = { 
+      id: `ses-${Date.now()}`, 
+      cashier_name: 'Caja 01', 
+      opened_at: new Date().toISOString(), 
+      initial_cash: 0, 
+      cash_sales: 0, 
+      card_sales: 0, 
+      transfer_sales: 0, 
+      cash_withdrawals: 0, 
+      expected_cash: 0, 
+      status: 'abierta' as const 
+    };
+    localStorage.setItem(STORAGE_KEYS.CASH_SESSION, JSON.stringify(emptySession));
+
+    // ✅ Obtenemos la configuración actual para NO perder el store_mode (Heladería o Kiosco)
+    const settings = this.getSettings ? this.getSettings() : INITIAL_SETTINGS;
+    const newSettings = { 
+      ...settings, 
+      // Mantenemos el store_mode que ya tenía el usuario en lugar de fijarlo a 'kiosko'
+      store_mode: settings.store_mode || 'kiosko', 
+      store_name: storeName || settings.store_name 
+    };
+    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(newSettings));
+  },
+
+  loadSupermarketDemo(): void {
+    localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(INITIAL_PRODUCTS));
+    localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(INITIAL_SALES));
+    localStorage.setItem(STORAGE_KEYS.MOVEMENTS, JSON.stringify(INITIAL_MOVEMENTS));
+    localStorage.setItem(STORAGE_KEYS.CASH_SESSION, JSON.stringify(INITIAL_CASH_SESSION));
+    
+    const settings = this.getSettings ? this.getSettings() : INITIAL_SETTINGS;
+    const newSettings = {
+      ...settings,
+      ...INITIAL_SETTINGS,
+      store_mode: 'kiosko' as StoreMode,
+      store_name: 'Kiosco - Dock Sud'
+    };
+    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(newSettings));
+  },
+
+  loadIceCreamDemo(): void {
+    localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(ICE_CREAM_PRODUCTS));
+    localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(ICE_CREAM_SALES));
+    localStorage.setItem(STORAGE_KEYS.MOVEMENTS, JSON.stringify([]));
+    localStorage.setItem(STORAGE_KEYS.CASH_SESSION, JSON.stringify(ICE_CREAM_CASH_SESSION));
+    
+    const settings = this.getSettings ? this.getSettings() : ICE_CREAM_SETTINGS;
+    const newSettings = {
+      ...settings,
+      ...ICE_CREAM_SETTINGS,
+      store_mode: 'heladeria' as StoreMode,
+      store_name: 'Heladería Artesanal - Dock Sud'
+    };
+    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(newSettings));
+  },
 };
