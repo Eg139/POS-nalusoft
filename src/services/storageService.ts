@@ -78,18 +78,21 @@ export const StorageService = {
     localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
   },
 
-  getProducts(): Product[] {
+getProducts(): Product[] {
     const raw = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
     const settings = this.getSettings();
-    const defaultCatalog = settings.store_mode === 'heladeria'? ICE_CREAM_PRODUCTS : INITIAL_PRODUCTS;
+    const defaultCatalog = settings.store_mode === 'heladeria' ? ICE_CREAM_PRODUCTS : INITIAL_PRODUCTS;
 
-    if (!raw) {
+    // Si la clave no existe en absoluto en localStorage, inicializamos por primera vez
+    if (raw === null) {
       localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(defaultCatalog));
       return defaultCatalog;
     }
+
     try {
       const parsed = JSON.parse(raw);
-      return parsed.length? parsed : defaultCatalog;
+      // ✅ CAMBIO CLAVE: Permitimos que devuelva un array vacío [] si el usuario lo borró intencionalmente.
+      return Array.isArray(parsed) ? parsed : defaultCatalog;
     } catch {
       return defaultCatalog;
     }
