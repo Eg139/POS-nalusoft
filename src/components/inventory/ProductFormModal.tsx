@@ -29,6 +29,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
     'Bebidas y Licores',
     'Snacks y Dulces',
     'Limpieza y Hogar',
+    'Comida Rapida',
     'General',
   ];
 
@@ -59,20 +60,22 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const parsedCost = parseFloat(costPrice) || 0;
   const parsedSale = parseFloat(salePrice) || 0;
 
-  // Cálculo seguro en tiempo real de márgenes y markups (Blindado para 100%, 200%, 300% o más)
+  // 🧮 Cálculos financieros claros para comerciantes
   const profitPerUnit = Math.max(0, parsedSale - parsedCost);
-  const profitMarginNum = parsedSale > 0 ? (profitPerUnit / parsedSale) * 100 : 0;
-  const profitMarginPercent = Number.isFinite(profitMarginNum) ? profitMarginNum.toFixed(1) : '0';
   
-  const markupNum = parsedCost > 0 ? (profitPerUnit / parsedCost) * 100 : 0;
-  const markupPercent = Number.isFinite(markupNum) ? markupNum.toFixed(1) : '0';
+  // 1. Porcentaje que representa la ganancia respecto al precio final de venta (ej: 83.3%)
+  const saleMarginNum = parsedSale > 0 ? (profitPerUnit / parsedSale) * 100 : 0;
+  const saleMarginPercent = Number.isFinite(saleMarginNum) ? saleMarginNum.toFixed(1) : '0';
+  
+  // 2. Porcentaje de ganancia real sobre el costo / inversión (¡El 500% que buscas!)
+  const costProfitNum = parsedCost > 0 ? (profitPerUnit / parsedCost) * 100 : 0;
+  const costProfitPercent = Number.isFinite(costProfitNum) ? costProfitNum.toFixed(1) : '0';
 
   const generateRandomBarcode = () => {
     const random12 = '750' + Math.floor(100000000 + Math.random() * 900000000).toString();
     setBarcode(random12);
   };
 
-  // 🛡️ Protección para bloquear letras (e, E) y signos negativos en inputs numéricos
   const handleNumericKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (['e', 'E', '+', '-'].includes(e.key)) {
       e.preventDefault();
@@ -179,7 +182,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Ej. Helado de Chocolate 1kg o Refresco 600ml"
+                placeholder="Ej. Prepizza, Helado de Chocolate 1kg"
                 className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 font-medium text-slate-900"
               />
             </div>
@@ -222,10 +225,10 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
             </div>
           </div>
 
-          {/* Row 3: Pricing & Margin Simulator */}
+          {/* Row 3: Pricing & Clear Profit Info */}
           <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-600 block">
-              Precios y Rendimiento / Margen
+              Precios y Ganancia del Producto
             </span>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -278,24 +281,24 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               </div>
             </div>
 
-            {/* Live Profit Margin Stats */}
-            <div className="flex flex-wrap items-center justify-between pt-2 border-t border-slate-200 text-xs text-slate-600 gap-2">
+            {/* Live Profit Stats - Clean & Clear Spanish Messages */}
+            <div className="flex flex-wrap items-center justify-between pt-2 border-t border-slate-200 text-xs text-slate-700 gap-2 font-medium">
               <div>
-                <span>Ganancia por unidad: </span>
+                <span>Ganancia neta: </span>
                 <span className="font-bold font-mono text-emerald-700 tabular-nums">
                   ${profitPerUnit.toFixed(2)}
                 </span>
               </div>
               <div>
-                <span>Margen de Ganancia: </span>
-                <span className="font-bold font-mono text-emerald-700 tabular-nums">
-                  {profitMarginPercent}%
+                <span>Ganancia sobre costo: </span>
+                <span className="font-bold font-mono text-emerald-700 tabular-nums text-sm">
+                  {costProfitPercent}%
                 </span>
               </div>
               <div>
-                <span>Markup s/costo: </span>
+                <span>Porcentaje del precio final: </span>
                 <span className="font-bold font-mono text-slate-800 tabular-nums">
-                  {markupPercent}%
+                  {saleMarginPercent}%
                 </span>
               </div>
             </div>

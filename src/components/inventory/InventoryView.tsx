@@ -41,12 +41,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const [sortField, setSortField] = useState<'name' | 'stock' | 'sale_price' | 'margin'>('name');
   const [sortAsc, setSortAsc] = useState(true);
 
-  // ✅ Sugerencia 3: Limpiar el estado de eliminación si cambian los filtros o la búsqueda
+  // Limpiar el estado de eliminación si cambian los filtros o la búsqueda
   useEffect(() => {
     setDeletingId(null);
   }, [searchQuery, categoryFilter, statusFilter]);
 
-  // Categories list dynamically derived from catalog
+  // Categorías dinámicas derivadas del catálogo
   const categories: string[] = useMemo(() => {
     const set = new Set<string>();
     products.forEach((p) => {
@@ -55,7 +55,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     return ['Todas', ...Array.from(set)];
   }, [products]);
 
-  // Overview metrics & Unificación de fechas de referencia
+  // Métricas de resumen (KPIs)
   const metrics = useMemo(() => {
     let totalCostVal = 0;
     let totalRetailVal = 0;
@@ -85,6 +85,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     });
 
     const potentialProfit = Math.max(0, totalRetailVal - totalCostVal);
+    // Margen promedio sobre la venta para el KPI general
     const avgMargin = totalRetailVal > 0 ? ((potentialProfit / totalRetailVal) * 100).toFixed(1) : '0';
 
     return {
@@ -99,7 +100,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     };
   }, [products]);
 
-  // Filtered & Sorted products (utilizando las mismas referencias de fechas estables)
+  // Productos filtrados y ordenados
   const filteredProducts = useMemo(() => {
     const now = new Date();
     const fifteenDaysFromNow = new Date();
@@ -216,7 +217,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `inventario-materias-primas-${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute('download', `inventario-superpos-${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -228,7 +229,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
           <div>
-            <span className="text-xs font-medium text-slate-500">Total Insumos / Stock</span>
+            <span className="text-xs font-medium text-slate-500">Total Productos / Stock</span>
             <p className="text-2xl font-bold font-mono text-slate-900 tabular-nums">
               {metrics.totalCount}
             </p>
@@ -259,7 +260,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               ${metrics.totalRetailVal}
             </p>
             <span className="text-[11px] text-emerald-600 font-semibold">
-              +{metrics.avgMargin}% margen prom.
+              +{metrics.avgMargin}% margen venta prom.
             </span>
           </div>
           <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
@@ -269,7 +270,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
           <div>
-            <span className="text-xs font-medium text-slate-500">Alertas de Almacén</span>
+            <span className="text-xs font-medium text-slate-500">Alertas de Inventario</span>
             <div className="flex items-baseline gap-2 mt-0.5">
               <span className="text-2xl font-bold font-mono text-amber-600 tabular-nums">
                 {metrics.lowStockCount + metrics.outOfStockCount}
@@ -293,7 +294,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="Buscar insumo o materia prima..."
+              placeholder="Buscar producto, insumo o código de barras..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-4 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
@@ -312,7 +313,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-emerald-500 text-slate-700"
+              className="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-emerald-500 text-slate-700 font-medium"
             >
               {categories.map((c) => (
                 <option key={c} value={c}>
@@ -337,7 +338,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors shadow-xs shrink-0"
             >
               <Plus className="w-4 h-4" />
-              <span>Nuevo Insumo</span>
+              <span>Nuevo Producto</span>
             </button>
           </div>
         </div>
@@ -399,7 +400,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   className="py-3 px-4 cursor-pointer hover:text-slate-800"
                 >
                   <div className="flex items-center gap-1">
-                    <span>Insumo / Producto</span>
+                    <span>Producto / Insumo</span>
                     <ArrowUpDown className="w-3 h-3" />
                   </div>
                 </th>
@@ -418,8 +419,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   onClick={() => toggleSort('margin')}
                   className="py-3 px-3 text-right cursor-pointer hover:text-slate-800"
                 >
-                  <div className="flex items-center justify-end gap-1">
-                    <span>Margen</span>
+                  <div className="flex items-center justify-end gap-1" title="Ganancia sobre costo / recargo">
+                    <span>Ganancia s/Costo</span>
                     <ArrowUpDown className="w-3 h-3" />
                   </div>
                 </th>
@@ -447,7 +448,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               ) : (
                 filteredProducts.map((p) => {
                   const profitUnit = Math.max(0, p.sale_price - p.cost_price);
-                  const marginPercent = p.sale_price > 0 ? ((profitUnit / p.sale_price) * 100).toFixed(1) : '0';
+                  // Cálculo transparente de ganancia sobre costo en la tabla (ej. 500%)
+                  const costProfitPercent = p.cost_price > 0 ? ((profitUnit / p.cost_price) * 100).toFixed(1) : '0';
+                  
                   const isOutOfStock = p.stock <= 0;
                   const isLowStock = p.stock > 0 && p.stock <= p.min_stock_alert;
 
@@ -480,7 +483,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         ${p.sale_price.toFixed(2)}
                       </td>
                       <td className="py-3 px-3 text-right font-mono tabular-nums text-emerald-700 font-semibold">
-                        {marginPercent}%
+                        +{costProfitPercent}%
                       </td>
                       <td className="py-3 px-3 text-right font-mono tabular-nums font-bold">
                         <span
@@ -539,7 +542,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                               setEditingProduct(p);
                               setIsFormOpen(true);
                             }}
-                            title="Editar datos de insumo"
+                            title="Editar datos de producto"
                             className="p-1.5 text-slate-600 hover:text-blue-700 hover:bg-slate-100 rounded transition-colors"
                           >
                             <Edit2 className="w-4 h-4" />
