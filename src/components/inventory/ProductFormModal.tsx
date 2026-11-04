@@ -17,9 +17,29 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
 }) => {
   const isEditing = Boolean(product);
 
+  const defaultCategories: string[] = [
+    'Helados por Kilo',
+    'Conos y Vasitos',
+    'Paletas Artesanales',
+    'Malteadas y Bebidas',
+    'Toppings y Adicionales',
+    'Abarrotes',
+    'Lácteos y Huevos',
+    'Frutas y Verduras',
+    'Bebidas y Licores',
+    'Snacks y Dulces',
+    'Limpieza y Hogar',
+    'General',
+  ];
+
+  const allSuggestedCategories = Array.from(new Set([...categories, ...defaultCategories]));
+
   const [barcode, setBarcode] = useState(product?.barcode || '');
   const [name, setName] = useState(product?.name || '');
-  const [category, setCategory] = useState<string>(product?.category || (categories.length > 0 ? categories[0] : 'General'));
+  
+  const initialCategory = product?.category || (allSuggestedCategories.includes(categories[0]) ? categories[0] : 'General');
+  const [category, setCategory] = useState<string>(initialCategory);
+
   const [costPrice, setCostPrice] = useState<string>(product ? product.cost_price.toString() : '');
   const [salePrice, setSalePrice] = useState<string>(product ? product.sale_price.toString() : '');
   const [stock, setStock] = useState<string>(product ? product.stock.toString() : '10');
@@ -39,14 +59,24 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const parsedCost = parseFloat(costPrice) || 0;
   const parsedSale = parseFloat(salePrice) || 0;
 
-  // Cálculo en tiempo real de márgenes y markups
+  // Cálculo seguro en tiempo real de márgenes y markups (Blindado para 100%, 200%, 300% o más)
   const profitPerUnit = Math.max(0, parsedSale - parsedCost);
-  const profitMarginPercent = parsedSale > 0 ? ((profitPerUnit / parsedSale) * 100).toFixed(1) : '0';
-  const markupPercent = parsedCost > 0 ? (((parsedSale - parsedCost) / parsedCost) * 100).toFixed(1) : '0';
+  const profitMarginNum = parsedSale > 0 ? (profitPerUnit / parsedSale) * 100 : 0;
+  const profitMarginPercent = Number.isFinite(profitMarginNum) ? profitMarginNum.toFixed(1) : '0';
+  
+  const markupNum = parsedCost > 0 ? (profitPerUnit / parsedCost) * 100 : 0;
+  const markupPercent = Number.isFinite(markupNum) ? markupNum.toFixed(1) : '0';
 
   const generateRandomBarcode = () => {
     const random12 = '750' + Math.floor(100000000 + Math.random() * 900000000).toString();
     setBarcode(random12);
+  };
+
+  // 🛡️ Protección para bloquear letras (e, E) y signos negativos en inputs numéricos
+  const handleNumericKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (['e', 'E', '+', '-'].includes(e.key)) {
+      e.preventDefault();
+    }
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -90,26 +120,8 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
     onSave(newProd);
   };
 
-  const defaultCategories: string[] = [
-    'Helados por Kilo',
-    'Conos y Vasitos',
-    'Paletas Artesanales',
-    'Malteadas y Bebidas',
-    'Toppings y Adicionales',
-    'Abarrotes',
-    'Lácteos y Huevos',
-    'Frutas y Verduras',
-    'Bebidas y Licores',
-    'Snacks y Dulces',
-    'Limpieza y Hogar',
-    'General',
-  ];
-
-  const allSuggestedCategories = Array.from(new Set([...categories, ...defaultCategories]));
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/65 backdrop-blur-xs p-4 overflow-y-auto">
-      {/* 🚀 Modal más ancho (max-w-3xl) y con altura máxima controlada */}
       <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full border border-slate-200 overflow-hidden flex flex-col my-auto max-h-[92vh]">
         
         {/* Header */}
@@ -173,13 +185,12 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
             </div>
           </div>
 
-          {/* Row 2: Category (Select / Dropdown real) & Unit */}
+          {/* Row 2: Category & Unit */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
                 Departamento / Categoría *
               </label>
-              {/* 🚀 Selector real (<select>) estilizado para garantizar que se comporte como un menú desplegable limpio */}
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
@@ -227,6 +238,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                   step="0.01"
                   min="0"
                   value={costPrice}
+                  onKeyDown={handleNumericKeyDown}
                   onChange={(e) => setCostPrice(e.target.value)}
                   placeholder="0.00"
                   className="w-full px-3 py-2 text-sm font-mono tabular-nums bg-white border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
@@ -243,6 +255,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                   min="0.01"
                   required
                   value={salePrice}
+                  onKeyDown={handleNumericKeyDown}
                   onChange={(e) => setSalePrice(e.target.value)}
                   placeholder="0.00"
                   className="w-full px-3 py-2 text-sm font-mono tabular-nums font-bold bg-white border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-emerald-500 text-slate-900"
@@ -300,6 +313,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                 min="0"
                 required
                 value={stock}
+                onKeyDown={handleNumericKeyDown}
                 onChange={(e) => setStock(e.target.value)}
                 className="w-full px-3 py-2 text-sm font-mono tabular-nums bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
               />
@@ -315,6 +329,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                 min="0"
                 required
                 value={minStockAlert}
+                onKeyDown={handleNumericKeyDown}
                 onChange={(e) => setMinStockAlert(e.target.value)}
                 className="w-full px-3 py-2 text-sm font-mono tabular-nums bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
               />
