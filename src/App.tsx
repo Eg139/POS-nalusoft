@@ -66,15 +66,12 @@ export default function App() {
   };
 
   const handleLoadDemo = (type: 'kiosko' | 'heladeria' | 'empty') => {
-    if (!confirm('⚠️ Esto borrará tus productos actuales. ¿Continuar?')) return;
     if (type === 'heladeria') StorageService.loadIceCreamDemo();
     if (type === 'kiosko') StorageService.loadSupermarketDemo();
     if (type === 'empty') StorageService.loadEmptyCatalog();
     loadData();
     setIsStoreModeModalOpen(false);
-    // reload solo si vaciamos, para limpiar estados del POS
-    if (type === 'empty') window.location.reload();
-    else showToast(type === 'heladeria'? '🍨 Demo Heladería cargada' : type === 'kiosko'? '🏪 Demo Kiosco cargada' : '✨ Catálogo vaciado');
+    showToast(type === 'heladeria' ? '🍨 Demo Heladería cargada' : type === 'kiosko' ? '🏪 Demo Kiosco cargada' : '✨ Catálogo vaciado');
   };
 
   if (!settings ||!cashSession) {
@@ -109,7 +106,15 @@ export default function App() {
 
       <main className="flex-1 flex flex-col overflow-hidden">
         {currentView === 'pos' && <POSView products={products} settings={settings} onRefreshData={loadData} onNavigateToStock={() => setCurrentView('inventory')} />}
-        {currentView === 'inventory' && <InventoryView products={products} onRefreshData={loadData} onNavigateToPOS={() => setCurrentView('pos')} />}
+        {currentView === 'inventory' && (
+          <InventoryView
+            products={products}
+            storeMode={settings.store_mode}
+            onRefreshData={loadData}
+            onNavigateToPOS={() => setCurrentView('pos')}
+            onNotify={showToast}
+          />
+        )}
         {currentView === 'production' && <RecipesView products={products} onRefreshData={loadData} onUpdateProductRecipe={(productId, recipe, hasRecipe) => { StorageService.updateProductRecipe(productId, recipe, hasRecipe); loadData(); showToast('¡Receta guardada!'); }} />}
         {currentView === 'alerts' && <AlertsView products={products} movements={movements} onRefreshData={loadData} onNavigateToInventory={() => setCurrentView('inventory')} />}
         {currentView === 'reports' && <ReportsView sales={sales} products={products} />}

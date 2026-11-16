@@ -191,3 +191,5 @@ export interface SupermarketSettings {
 export const getCategoriesByMode = (mode: StoreMode) => {
   return mode === 'heladeria'? HELADERIA_CATEGORIES : KIOSKO_CATEGORIES;
 };
+
+export * from './receipt';

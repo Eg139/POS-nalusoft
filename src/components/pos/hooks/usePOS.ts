@@ -62,6 +62,10 @@ export const usePOS = (
   }, [products, settings.store_mode]);
 
   useEffect(() => {
+    setSelectedCategory('Todos');
+  }, [settings.store_mode]);
+
+  useEffect(() => {
     barcodeInputRef.current?.focus();
   }, [cart, isPaymentOpen, completedSale]);
 
