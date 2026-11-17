@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Plus, Download, ScanLine } from 'lucide-react';
+import { Search, Plus, Download, ScanLine, X } from 'lucide-react';
 import { InventoryStatusFilter } from '../../hooks/useInventory';
 
 interface InventoryToolbarProps {
@@ -45,15 +45,16 @@ export const InventoryToolbar: React.FC<InventoryToolbarProps> = ({
             placeholder="Buscar producto, insumo o código de barras..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+            className="w-full pl-9 pr-8 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
           />
           {searchQuery && (
             <button
               type="button"
               onClick={() => onSearchChange('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-600"
+              aria-label="Limpiar búsqueda"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
             >
-              ✕
+              <X className="w-3.5 h-3.5" />
             </button>
           )}
         </div>

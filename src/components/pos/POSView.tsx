@@ -1,8 +1,9 @@
 import React from 'react';
 import { Product, SupermarketSettings } from '../../types';
 import { usePOS } from './hooks/usePOS';
-import { POSProductGrid } from './components/POSProductGrid';
-import { POSCartPanel } from './components/POSCartPanel';
+import { POSLayoutProps } from './types';
+import { POSMobileLayout } from './components/POSMobileLayout';
+import { POSHybridLayout } from './components/POSHybridLayout';
 import { PaymentModal } from './components/PaymentModal';
 import { TicketModal } from './components/TicketModal';
 import { WeightedItemModal } from './components/WeightedItemModal';
@@ -31,38 +32,38 @@ export const POSView: React.FC<POSViewProps> = ({
     holdCurrentCart, retrieveHeldCart,
   } = usePOS(products, settings, onRefreshData);
 
-  return (
-    <div className="w-full h-[calc(100vh-65px)] flex flex-col lg:flex-row overflow-hidden bg-slate-100 select-none">
-      <POSProductGrid
-        barcodeInput={barcodeInput}
-        onBarcodeInputChange={setBarcodeInput}
-        onBarcodeSubmit={handleBarcodeSubmit}
-        barcodeInputRef={barcodeInputRef}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        soundEnabled={soundEnabled}
-        onToggleSound={() => setSoundEnabled(!soundEnabled)}
-        scanMessage={scanMessage}
-        categories={categories}
-        selectedCategory={selectedCategory}
-        onSelectCategory={setSelectedCategory}
-        filteredProducts={filteredProducts}
-        onAddProduct={(prod) => addProductToCart(prod)}
-      />
+  const layoutProps: POSLayoutProps = {
+    cashierName: settings.cashier_active,
+    barcodeInput,
+    onBarcodeInputChange: setBarcodeInput,
+    onBarcodeSubmit: handleBarcodeSubmit,
+    barcodeInputRef,
+    searchQuery,
+    onSearchChange: setSearchQuery,
+    soundEnabled,
+    onToggleSound: () => setSoundEnabled(!soundEnabled),
+    scanMessage,
+    categories,
+    selectedCategory,
+    onSelectCategory: setSelectedCategory,
+    filteredProducts,
+    onAddProduct: (prod) => addProductToCart(prod),
+    cart,
+    heldCarts,
+    totals,
+    onHoldCart: holdCurrentCart,
+    onRetrieveHeldCart: retrieveHeldCart,
+    onClearCart: () => setCart([]),
+    onUpdateQuantity: updateQuantity,
+    onApplyDiscount: applyLineDiscount,
+    onRemoveItem: removeItem,
+    onOpenPayment: () => setIsPaymentOpen(true),
+  };
 
-      <POSCartPanel
-        cashierName={settings.cashier_active}
-        cart={cart}
-        heldCarts={heldCarts}
-        totals={totals}
-        onHoldCart={holdCurrentCart}
-        onRetrieveHeldCart={retrieveHeldCart}
-        onClearCart={() => setCart([])}
-        onUpdateQuantity={updateQuantity}
-        onApplyDiscount={applyLineDiscount}
-        onRemoveItem={removeItem}
-        onOpenPayment={() => setIsPaymentOpen(true)}
-      />
+  return (
+    <div className="w-full h-[calc(100vh-65px)] flex flex-col overflow-hidden bg-slate-100 select-none">
+      <POSMobileLayout {...layoutProps} />
+      <POSHybridLayout {...layoutProps} />
 
       {isPaymentOpen && (
         <PaymentModal

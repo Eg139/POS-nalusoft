@@ -1,5 +1,5 @@
 import React from 'react';
-import { SlidersHorizontal, Edit2, Trash2, ArrowUpDown } from 'lucide-react';
+import { SlidersHorizontal, Edit2, Trash2, ArrowUpDown, X } from 'lucide-react';
 import { Product } from '../../types';
 import { InventorySortField } from '../../hooks/useInventory';
 
@@ -28,36 +28,36 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
         <table className="w-full text-left border-collapse text-xs">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase tracking-wider text-[10px]">
-              <th className="py-3 px-4">Código</th>
-              <th onClick={() => onToggleSort('name')} className="py-3 px-4 cursor-pointer hover:text-slate-800">
+              <th className="hidden md:table-cell py-3 px-4">Código</th>
+              <th onClick={() => onToggleSort('name')} className="py-3 px-3 md:px-4 cursor-pointer hover:text-slate-800">
                 <div className="flex items-center gap-1">
                   <span>Producto / Insumo</span>
-                  <ArrowUpDown className="w-3 h-3" />
+                  <ArrowUpDown className="w-3 h-3 shrink-0" />
                 </div>
               </th>
-              <th className="py-3 px-3">Categoría</th>
-              <th className="py-3 px-3 text-right">Costo</th>
-              <th onClick={() => onToggleSort('sale_price')} className="py-3 px-3 text-right cursor-pointer hover:text-slate-800">
+              <th className="hidden lg:table-cell py-3 px-3">Categoría</th>
+              <th className="hidden lg:table-cell py-3 px-3 text-right">Costo</th>
+              <th onClick={() => onToggleSort('sale_price')} className="py-3 px-2.5 md:px-3 text-right cursor-pointer hover:text-slate-800">
                 <div className="flex items-center justify-end gap-1">
                   <span>P. Venta</span>
-                  <ArrowUpDown className="w-3 h-3" />
+                  <ArrowUpDown className="w-3 h-3 shrink-0" />
                 </div>
               </th>
-              <th onClick={() => onToggleSort('margin')} className="py-3 px-3 text-right cursor-pointer hover:text-slate-800">
+              <th onClick={() => onToggleSort('margin')} className="hidden xl:table-cell py-3 px-3 text-right cursor-pointer hover:text-slate-800">
                 <div className="flex items-center justify-end gap-1" title="Ganancia sobre costo">
                   <span>Ganancia s/Costo</span>
-                  <ArrowUpDown className="w-3 h-3" />
+                  <ArrowUpDown className="w-3 h-3 shrink-0" />
                 </div>
               </th>
-              <th onClick={() => onToggleSort('stock')} className="py-3 px-3 text-right cursor-pointer hover:text-slate-800">
+              <th onClick={() => onToggleSort('stock')} className="py-3 px-2.5 md:px-3 text-right cursor-pointer hover:text-slate-800">
                 <div className="flex items-center justify-end gap-1">
                   <span>Stock</span>
-                  <ArrowUpDown className="w-3 h-3" />
+                  <ArrowUpDown className="w-3 h-3 shrink-0" />
                 </div>
               </th>
-              <th className="py-3 px-3 text-center">Estado</th>
-              <th className="py-3 px-3">Vencimiento</th>
-              <th className="py-3 px-4 text-center">Acciones</th>
+              <th className="hidden sm:table-cell py-3 px-3 text-center">Estado</th>
+              <th className="hidden xl:table-cell py-3 px-3">Vencimiento</th>
+              <th className="py-3 px-3 md:px-4 text-right sm:text-center">Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -79,26 +79,29 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
 
                 return (
                   <tr key={p.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-3 px-4 font-mono text-slate-500 whitespace-nowrap">{p.barcode}</td>
-                    <td className="py-3 px-4 font-semibold text-slate-900">
-                      <span>{p.name}</span>
+                    <td className="hidden md:table-cell py-3 px-4 font-mono text-slate-500 whitespace-nowrap">{p.barcode}</td>
+                    <td className="py-3 px-3 md:px-4 font-semibold text-slate-900 min-w-[130px]">
+                      <span className="line-clamp-2">{p.name}</span>
+                      <span className="block lg:hidden text-[10px] text-slate-400 font-normal mt-0.5">{p.category}</span>
                       {p.batch_number && (
                         <span className="block text-[10px] text-slate-400 font-mono mt-0.5">
                           Lote: {p.batch_number}
                         </span>
                       )}
                     </td>
-                    <td className="py-3 px-3 text-slate-600 whitespace-nowrap">{p.category}</td>
-                    <td className="py-3 px-3 text-right font-mono tabular-nums text-slate-500">${p.cost_price.toFixed(2)}</td>
-                    <td className="py-3 px-3 text-right font-mono tabular-nums font-bold text-slate-900">${p.sale_price.toFixed(2)}</td>
-                    <td className="py-3 px-3 text-right font-mono tabular-nums text-emerald-700 font-semibold">+{costProfitPercent}%</td>
-                    <td className="py-3 px-3 text-right font-mono tabular-nums font-bold">
+                    <td className="hidden lg:table-cell py-3 px-3 text-slate-600 whitespace-nowrap">{p.category}</td>
+                    <td className="hidden lg:table-cell py-3 px-3 text-right font-mono tabular-nums text-slate-500">${p.cost_price.toFixed(2)}</td>
+                    <td className="py-3 px-2.5 md:px-3 text-right font-mono tabular-nums font-bold text-slate-900 whitespace-nowrap">
+                      ${p.sale_price.toFixed(2)}
+                    </td>
+                    <td className="hidden xl:table-cell py-3 px-3 text-right font-mono tabular-nums text-emerald-700 font-semibold">+{costProfitPercent}%</td>
+                    <td className="py-3 px-2.5 md:px-3 text-right font-mono tabular-nums font-bold whitespace-nowrap">
                       <span className={isOutOfStock ? 'text-rose-600' : isLowStock ? 'text-amber-600' : 'text-slate-800'}>
                         {p.stock}
                       </span>{' '}
                       <span className="text-[10px] text-slate-400 font-normal">{p.unit}</span>
                     </td>
-                    <td className="py-3 px-3 text-center whitespace-nowrap">
+                    <td className="hidden sm:table-cell py-3 px-3 text-center whitespace-nowrap">
                       {isOutOfStock ? (
                         <span className="inline-block px-2 py-0.5 text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-200 rounded">Agotado</span>
                       ) : isLowStock ? (
@@ -107,7 +110,7 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
                         <span className="inline-block px-2 py-0.5 text-[10px] font-medium text-emerald-700 bg-emerald-50 rounded">Normal</span>
                       )}
                     </td>
-                    <td className="py-3 px-3 whitespace-nowrap text-[11px]">
+                    <td className="hidden xl:table-cell py-3 px-3 whitespace-nowrap text-[11px]">
                       {p.expiry_date ? (
                         <span className={isExpiringSoon ? 'font-bold text-rose-600' : 'text-slate-600'}>
                           Vence: {p.expiry_date}
@@ -116,26 +119,50 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
                         <span className="text-slate-300">-</span>
                       )}
                     </td>
-                    <td className="py-3 px-4 text-center whitespace-nowrap">
-                      <div className="flex items-center justify-center gap-1">
-                        <button type="button" onClick={() => onAdjustStock(p)} title="Ajustar stock" className="p-1.5 text-slate-600 hover:text-emerald-700 hover:bg-slate-100 rounded transition-colors">
-                          <SlidersHorizontal className="w-4 h-4" />
+                    <td className="py-2.5 px-2.5 md:px-4 whitespace-nowrap">
+                      <div className="flex items-center justify-end sm:justify-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => onAdjustStock(p)}
+                          title="Ajustar stock"
+                          className="w-8 h-8 flex items-center justify-center text-slate-600 hover:text-emerald-700 bg-slate-50 hover:bg-emerald-50 rounded-lg transition-colors"
+                        >
+                          <SlidersHorizontal className="w-3.5 h-3.5" />
                         </button>
-                        <button type="button" onClick={() => onEditProduct(p)} title="Editar producto" className="p-1.5 text-slate-600 hover:text-blue-700 hover:bg-slate-100 rounded transition-colors">
-                          <Edit2 className="w-4 h-4" />
+                        <button
+                          type="button"
+                          onClick={() => onEditProduct(p)}
+                          title="Editar producto"
+                          className="w-8 h-8 flex items-center justify-center text-slate-600 hover:text-blue-700 bg-slate-50 hover:bg-blue-50 rounded-lg transition-colors"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
                         </button>
                         {deletingId === p.id ? (
                           <div className="flex items-center gap-1">
-                            <button type="button" onClick={() => onConfirmDelete(p.id)} className="px-2 py-0.5 text-[10px] font-bold text-white bg-rose-600 hover:bg-rose-700 rounded">
-                              ¿Borrar?
+                            <button
+                              type="button"
+                              onClick={() => onConfirmDelete(p.id)}
+                              className="px-2 h-8 text-[10px] font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-lg whitespace-nowrap"
+                            >
+                              Borrar
                             </button>
-                            <button type="button" onClick={() => onRequestDelete(null)} className="text-slate-400 hover:text-slate-600 text-xs px-1">
-                              ✕
+                            <button
+                              type="button"
+                              onClick={() => onRequestDelete(null)}
+                              aria-label="Cancelar eliminación"
+                              className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 bg-slate-100 rounded-lg"
+                            >
+                              <X className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         ) : (
-                          <button type="button" onClick={() => onRequestDelete(p.id)} title="Eliminar" className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-slate-100 rounded transition-colors">
-                            <Trash2 className="w-4 h-4" />
+                          <button
+                            type="button"
+                            onClick={() => onRequestDelete(p.id)}
+                            title="Eliminar"
+                            className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-rose-600 bg-slate-50 hover:bg-rose-50 rounded-lg transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         )}
                       </div>
